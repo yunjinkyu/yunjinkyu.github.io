@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>3D 원카드 - 종이접기 에디션</title>
 
-  <!-- 외부 라이브러리 (Three.js, PeerJS) - 로드 실패 시에도 안전하게 동작하도록 가드 처리 -->
+  <!-- 외부 라이브러리 (Three.js, PeerJS) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js" defer></script>
 
@@ -23,16 +23,16 @@
       --cream: #fff6e5;
       --text-muted: #d6c3a5;
 
-      /* 사진 속 4가지 핵심 색상 + 와일드 */
-      --c-red: #d93b32;
-      --c-red-dark: #b8241d;
-      --c-blue: #2b8fd6;
-      --c-blue-dark: #1b6fb3;
-      --c-green: #68a832;
-      --c-green-dark: #4b851e;
-      --c-yellow: #f2b632;
-      --c-yellow-dark: #d99216;
-      --c-wild: #383735;
+      /* 사진 기반 4가지 핵심 색상 + 와일드 */
+      --c-red: #c82f25;
+      --c-red-light: #e66052;
+      --c-blue: #1e80cb;
+      --c-blue-light: #5fb1eb;
+      --c-green: #5d9c30;
+      --c-green-light: #90c457;
+      --c-yellow: #ebb02d;
+      --c-yellow-light: #f6d468;
+      --c-wild: #2b2b2b;
     }
 
     * {
@@ -96,7 +96,7 @@
       font-size: 12px;
       font-weight: 700;
       color: var(--gold);
-      background: rgba(0,0,0,0.45);
+      background: rgba(0, 0, 0, 0.45);
       padding: 3px 10px;
       border-radius: 999px;
     }
@@ -126,6 +126,10 @@
       pointer-events: auto;
     }
 
+    .hud-right {
+      justify-content: flex-end;
+    }
+
     .hud-pill {
       display: inline-flex;
       align-items: center;
@@ -150,19 +154,19 @@
     }
 
     .attack-pill {
-      background: linear-gradient(135deg, #d93b32, #9e1912);
+      background: linear-gradient(135deg, #c82f25, #941912);
       border-color: #ffb8b3;
       color: #fff;
       animation: pulseAttack 0.8s infinite alternate;
     }
 
     @keyframes pulseAttack {
-      from { transform: scale(1); box-shadow: 0 0 8px rgba(217, 59, 50, 0.7); }
+      from { transform: scale(1); box-shadow: 0 0 8px rgba(200, 47, 37, 0.7); }
       to { transform: scale(1.06); box-shadow: 0 0 18px rgba(255, 130, 110, 0.95); }
     }
 
     .spectator-pill {
-      background: linear-gradient(135deg, #1b6fb3, #114775);
+      background: linear-gradient(135deg, #1e80cb, #114775);
       border-color: #9ed5ff;
       color: #fff;
     }
@@ -173,14 +177,14 @@
       color: var(--cream);
       border-radius: 12px;
       padding: 7px 11px;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      transition: transform 0.14s ease, background 0.14s ease;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease;
     }
 
     .hud-btn:hover {
@@ -190,6 +194,17 @@
 
     .hud-btn:active {
       transform: scale(0.95);
+    }
+
+    .hud-btn.hint-on {
+      border-color: #f6d468;
+      background: rgba(235, 176, 45, 0.22);
+      color: #fff3c4;
+    }
+
+    .hud-btn.hint-off {
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #c2b29b;
     }
 
     /* =========================================================
@@ -208,19 +223,19 @@
       flex-direction: column;
       align-items: center;
       gap: 3px;
-      background: rgba(28, 18, 11, 0.82);
+      background: rgba(28, 18, 11, 0.84);
       border: 1.5px solid rgba(246, 201, 104, 0.35);
       border-radius: 14px;
       padding: 6px 12px;
       min-width: 96px;
       backdrop-filter: blur(6px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
       transition: all 0.25s ease;
     }
 
     .seat-badge.active-turn {
       border-color: var(--gold);
-      box-shadow: 0 0 18px rgba(246, 201, 104, 0.75);
+      box-shadow: 0 0 18px rgba(246, 201, 104, 0.78);
       transform: translateX(-50%) scale(1.06);
     }
 
@@ -279,7 +294,7 @@
     }
 
     .seat-tag.onecard {
-      background: #d93b32;
+      background: #c82f25;
       color: #fff;
       animation: pulseAttack 0.7s infinite alternate;
     }
@@ -294,25 +309,30 @@
        ========================================================= */
     #toast-banner {
       position: fixed;
-      top: 128px;
+      top: 124px;
       left: 50%;
       transform: translateX(-50%) translateY(-10px);
       z-index: 35;
-      background: rgba(24, 15, 9, 0.92);
+      background: rgba(24, 15, 9, 0.94);
       border: 1.5px solid var(--gold);
       color: #fff;
       padding: 8px 18px;
       border-radius: 999px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 800;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.52);
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.22s ease, transform 0.22s ease;
+      transition: opacity 0.2s ease, transform 0.2s ease;
       white-space: nowrap;
       max-width: 92vw;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    #toast-banner.warn {
+      border-color: #ff7b72;
+      background: rgba(74, 18, 14, 0.95);
     }
 
     #toast-banner.show {
@@ -372,24 +392,24 @@
     }
 
     #btn-draw {
-      background: linear-gradient(135deg, #2b8fd6, #1b6fb3);
+      background: linear-gradient(135deg, #1e80cb, #155c94);
       border: 1.5px solid #9bd8ff;
     }
 
     #btn-draw.attack-draw {
-      background: linear-gradient(135deg, #d93b32, #a81c15);
+      background: linear-gradient(135deg, #c82f25, #8f1811);
       border-color: #ffbeb8;
       animation: pulseAttack 0.75s infinite alternate;
     }
 
     #btn-onecard {
-      background: linear-gradient(135deg, #f2b632, #d97816);
+      background: linear-gradient(135deg, #ebb02d, #c97d14);
       border: 1.5px solid #fff0b8;
       color: #2b1605;
     }
 
     #btn-onecard.urgent {
-      background: linear-gradient(135deg, #ff513b, #d92218);
+      background: linear-gradient(135deg, #e64539, #b81d14);
       border-color: #fff;
       color: #fff;
       animation: pulseAttack 0.6s infinite alternate;
@@ -417,8 +437,8 @@
     #hand-tray {
       width: 100%;
       max-width: 960px;
-      min-height: 126px;
-      padding: 16px 16px 10px;
+      min-height: 128px;
+      padding: 18px 16px 10px;
       display: flex;
       align-items: flex-end;
       justify-content: safe center;
@@ -460,21 +480,50 @@
       border-radius: 10px;
     }
 
+    /* 힌트 ON 상태: 낼 수 있는 카드 강조 / 낼 수 없는 카드 어둡게 */
     .hand-card.playable {
-      transform: translateY(-12px);
-      box-shadow: 0 10px 22px rgba(255, 224, 130, 0.55), 0 0 0 2.5px #ffe58f;
+      transform: translateY(-13px);
+      box-shadow: 0 10px 22px rgba(246, 212, 104, 0.58), 0 0 0 2.5px #ffe58f;
       z-index: 3;
     }
 
     .hand-card.playable:hover {
-      transform: translateY(-22px) scale(1.06);
+      transform: translateY(-23px) scale(1.06);
       z-index: 15;
     }
 
     .hand-card.unplayable {
-      filter: brightness(0.62) saturate(0.75);
+      filter: brightness(0.6) saturate(0.72);
       transform: translateY(4px);
       cursor: not-allowed;
+    }
+
+    /* 힌트 OFF 상태: 모든 카드 동일한 밝기와 높이, 전부 클릭 가능 */
+    .hand-card.hint-off {
+      filter: none;
+      transform: translateY(0);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
+      cursor: pointer;
+    }
+
+    .hand-card.hint-off:hover {
+      transform: translateY(-10px) scale(1.04);
+      z-index: 15;
+    }
+
+    /* 힌트 OFF 오클릭 좌우 흔들림(shake) 애니메이션 */
+    .hand-card.shake {
+      animation: cardShake 0.36s ease-in-out;
+      box-shadow: 0 0 0 2.5px #ff6b61, 0 8px 18px rgba(200, 47, 37, 0.55);
+      z-index: 20;
+    }
+
+    @keyframes cardShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-7px) rotate(-3deg); }
+      40% { transform: translateX(7px) rotate(3deg); }
+      60% { transform: translateX(-5px) rotate(-2deg); }
+      80% { transform: translateX(5px) rotate(2deg); }
     }
 
     /* 관전 시 하단 안내 바 */
@@ -489,7 +538,7 @@
       border-radius: 999px;
       font-size: 13px;
       font-weight: 700;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
     }
 
     /* =========================================================
@@ -526,7 +575,7 @@
       height: 32px;
       border-radius: 50%;
       border: none;
-      background: rgba(255,255,255,0.08);
+      background: rgba(255, 255, 255, 0.08);
       font-size: 17px;
       cursor: pointer;
       display: flex;
@@ -537,7 +586,7 @@
 
     .emoji-btn:hover {
       transform: scale(1.18);
-      background: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.2);
     }
 
     .chat-toggle-btn {
@@ -584,7 +633,7 @@
       border-radius: 14px;
       overflow: hidden;
       backdrop-filter: blur(10px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
     }
 
     #chat-box.open {
@@ -615,14 +664,14 @@
       margin-right: 4px;
     }
 
-    .role-host { background: #f2b632; color: #2b1605; }
-    .role-player { background: #2b8fd6; color: #fff; }
+    .role-host { background: #ebb02d; color: #2b1605; }
+    .role-player { background: #1e80cb; color: #fff; }
     .role-spectator { background: #26a69a; color: #fff; }
 
     .chat-input-row {
       display: flex;
-      border-top: 1px solid rgba(255,255,255,0.12);
-      background: rgba(0,0,0,0.25);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.25);
     }
 
     #chat-input {
@@ -652,7 +701,7 @@
       font-size: 36px;
       pointer-events: none;
       animation: floatUpEmoji 1.6s ease-out forwards;
-      text-shadow: 0 4px 12px rgba(0,0,0,0.45);
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
     }
 
     @keyframes floatUpEmoji {
@@ -662,7 +711,7 @@
     }
 
     /* =========================================================
-       모달 공통 스타일
+       모달 공통 스타일 & 토글 스위치
        ========================================================= */
     .modal-backdrop {
       position: fixed;
@@ -706,7 +755,83 @@
       font-size: 12.5px;
       color: var(--text-muted);
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
+    }
+
+    /* 시작 모달 내 힌트 ON/OFF 옵션 박스 */
+    .option-toggle-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(246, 201, 104, 0.3);
+      border-radius: 13px;
+      padding: 10px 13px;
+      margin-bottom: 14px;
+    }
+
+    .option-toggle-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .option-toggle-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--cream);
+    }
+
+    .option-toggle-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #55463a;
+      border-radius: 999px;
+      transition: background 0.2s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 2px;
+      top: 2px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: linear-gradient(135deg, #ebb02d, #c98612);
+      border-color: #fff0b8;
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(22px);
     }
 
     .tab-row {
@@ -723,8 +848,8 @@
     .tab-btn {
       padding: 9px 8px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(0,0,0,0.28);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(0, 0, 0, 0.28);
       color: var(--text-muted);
       font-size: 13px;
       font-weight: 800;
@@ -736,7 +861,7 @@
       background: linear-gradient(135deg, #f6c968, #d4962a);
       color: #261406;
       border-color: #fff2c6;
-      box-shadow: 0 4px 12px rgba(242, 182, 50, 0.35);
+      box-shadow: 0 4px 12px rgba(235, 176, 45, 0.35);
     }
 
     .form-group {
@@ -756,7 +881,7 @@
       padding: 10px 12px;
       border-radius: 12px;
       border: 1px solid rgba(246, 201, 104, 0.35);
-      background: rgba(0,0,0,0.35);
+      background: rgba(0, 0, 0, 0.35);
       color: #fff;
       font-size: 14px;
       font-weight: 700;
@@ -778,8 +903,8 @@
       min-width: 72px;
       padding: 8px 6px;
       border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(0,0,0,0.28);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(0, 0, 0, 0.28);
       color: var(--cream);
       font-size: 13px;
       font-weight: 700;
@@ -815,8 +940,8 @@
       width: 100%;
       padding: 10px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.22);
-      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.08);
       color: var(--cream);
       font-size: 13px;
       font-weight: 700;
@@ -824,7 +949,7 @@
     }
 
     .room-code-box {
-      background: rgba(0,0,0,0.38);
+      background: rgba(0, 0, 0, 0.38);
       border: 1.5px dashed var(--gold);
       border-radius: 14px;
       padding: 12px;
@@ -847,7 +972,7 @@
     }
 
     .lobby-list {
-      background: rgba(0,0,0,0.28);
+      background: rgba(0, 0, 0, 0.28);
       border-radius: 12px;
       padding: 8px 10px;
       margin-bottom: 10px;
@@ -859,7 +984,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 4px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .lobby-item:last-child { border-bottom: none; }
@@ -880,8 +1005,8 @@
       font-size: 16px;
       font-weight: 900;
       cursor: pointer;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.45);
-      box-shadow: 0 8px 18px rgba(0,0,0,0.4);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
       transition: transform 0.14s ease;
     }
 
@@ -912,7 +1037,7 @@
       max-width: 68px;
       height: auto;
       border-radius: 7px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
     }
 
     .rules-list {
@@ -930,14 +1055,14 @@
       border-collapse: collapse;
       font-size: 12px;
       margin-bottom: 14px;
-      background: rgba(0,0,0,0.28);
+      background: rgba(0, 0, 0, 0.28);
       border-radius: 10px;
       overflow: hidden;
     }
 
     .rules-table th, .rules-table td {
       padding: 6px 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       text-align: center;
     }
 
@@ -954,11 +1079,11 @@
         margin-left: -16px;
       }
       #hand-tray {
-        min-height: 114px;
-        padding: 14px 12px 8px;
+        min-height: 116px;
+        padding: 15px 12px 8px;
       }
-      .hud-pill { font-size: 12px; padding: 5px 10px; }
-      .hud-btn { font-size: 12px; padding: 6px 9px; }
+      .hud-pill { font-size: 11.5px; padding: 5px 9px; }
+      .hud-btn { font-size: 11.5px; padding: 6px 8px; }
       #social-widget { bottom: 162px; }
       .seat-left { left: 6px; min-width: 82px; padding: 5px 8px; }
       .seat-right { right: 6px; min-width: 82px; padding: 5px 8px; }
@@ -985,7 +1110,7 @@
   <header id="top-hud">
     <div class="hud-left">
       <div class="hud-pill" id="hud-turn">
-        <span class="color-dot" id="hud-color-dot" style="background:#d93b32;color:#d93b32;"></span>
+        <span class="color-dot" id="hud-color-dot" style="background:#c82f25;color:#c82f25;"></span>
         <span id="hud-turn-text">게임 준비 중</span>
       </div>
       <div class="hud-pill" id="hud-dir" title="진행 방향">↻ 시계</div>
@@ -994,6 +1119,7 @@
     </div>
 
     <div class="hud-right">
+      <button class="hud-btn hint-on" id="btn-hint-toggle" type="button" title="낼 수 있는 카드 강조 표시 켜기/끄기">💡 힌트: ON</button>
       <button class="hud-btn" id="btn-rules" type="button">📖 규칙</button>
       <button class="hud-btn" id="btn-sound" type="button">🔊 소리</button>
       <button class="hud-btn" id="btn-newgame" type="button">🔄 새 게임</button>
@@ -1050,6 +1176,18 @@
       <div class="modal-title">🃏 3D 원카드</div>
       <div class="modal-sub">종이접기 4색 64장 에디션 · 자물쇠 / 비행기 / +2 / 바람개비</div>
 
+      <!-- 낼 수 있는 카드 표시(힌트) ON/OFF 토글 -->
+      <div class="option-toggle-box">
+        <div class="option-toggle-info">
+          <span class="option-toggle-title">💡 낼 수 있는 카드 표시 (힌트)</span>
+          <span class="option-toggle-desc" id="modal-hint-desc">ON: 낼 수 있는 카드를 위로 강조 표시</span>
+        </div>
+        <label class="toggle-switch" aria-label="낼 수 있는 카드 힌트 토글">
+          <input type="checkbox" id="modal-hint-checkbox" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
       <div class="tab-row">
         <button class="tab-btn active" id="mode-tab-ai" type="button">🤖 1인용 AI 대결</button>
         <button class="tab-btn" id="mode-tab-online" type="button">🌐 온라인 대결</button>
@@ -1074,8 +1212,8 @@
         <div class="form-group">
           <label class="form-label">AI 난이도</label>
           <div class="choice-row" id="ai-diff-row">
+            <button class="choice-pill" data-val="easy" type="button">쉬움</button>
             <button class="choice-pill active" data-val="normal" type="button">보통</button>
-            <button class="choice-pill" data-val="hard" type="button">어려움</button>
           </div>
         </div>
 
@@ -1154,10 +1292,10 @@
       <div class="modal-title">🌀 원하는 색상 선택</div>
       <div class="modal-sub">다음 차례에 적용할 색상을 골라주세요!</div>
       <div class="color-picker-grid">
-        <button class="color-pick-btn" data-color="red" style="background:linear-gradient(135deg,#e84c43,#b8241d);" type="button">❤️ 빨강</button>
-        <button class="color-pick-btn" data-color="blue" style="background:linear-gradient(135deg,#3ea2ea,#1b6fb3);" type="button">💙 파랑</button>
-        <button class="color-pick-btn" data-color="green" style="background:linear-gradient(135deg,#7ac23c,#4b851e);" type="button">💚 초록</button>
-        <button class="color-pick-btn" data-color="yellow" style="background:linear-gradient(135deg,#f8c74a,#d99216);color:#2b1605;text-shadow:none;" type="button">💛 노랑</button>
+        <button class="color-pick-btn" data-color="red" style="background:linear-gradient(135deg,#e66052,#c82f25);" type="button">❤️ 빨강</button>
+        <button class="color-pick-btn" data-color="blue" style="background:linear-gradient(135deg,#5fb1eb,#1e80cb);" type="button">💙 파랑</button>
+        <button class="color-pick-btn" data-color="green" style="background:linear-gradient(135deg,#90c457,#5d9c30);" type="button">💚 초록</button>
+        <button class="color-pick-btn" data-color="yellow" style="background:linear-gradient(135deg,#f6d468,#ebb02d);color:#2b1605;text-shadow:none;" type="button">💛 노랑</button>
       </div>
     </div>
   </div>
@@ -1178,7 +1316,8 @@
         <div>• <strong>✈️ 비행기 (반대로!):</strong> 진행 방향(시계↔반시계)을 바꿉니다. <strong>단, 1대1(2인) 경기에서는 '한 번 더!'로 발동합니다!</strong></div>
         <div>• <strong>⚡ +2 (공격 카드):</strong> 다음 플레이어에게 +2장 공격! 다음 사람이 +2 카드로 받아치면 +4, +6...으로 누적되며, 막지 못하면 누적 장수만큼 뽑고 턴이 끝납니다.</div>
         <div>• <strong>🌀 바람개비 (색상 선택):</strong> 공격 방어 중이 아닐 때 아무 카드 위에나 낼 수 있으며, 빨강·파랑·초록·노랑 중 원하는 색상을 선택합니다.</div>
-        <div>• <strong>🏆 승리 & 파산:</strong> 손패를 먼저 <strong>0장</strong>으로 만들면 승리! 손패가 <strong>16장 이상</strong>이 되면 파산 처리됩니다.</div>
+        <div>• <strong>💡 힌트 ON/OFF:</strong> 상단 <strong>💡 힌트</strong> 버튼이나 시작 설정에서 낼 수 있는 카드 강조 표시를 켜고 끌 수 있습니다. OFF 상태에서는 모든 손패가 동일하게 보이며, 낼 수 없는 카드를 누르면 흔들림과 함께 안내가 뜹니다.</div>
+        <div>• <strong>🏆 승리 & 파산:</strong> 손패가 <strong>1장</strong> 남으면 자동으로 "원카드!"가 발동하며, <strong>0장</strong>이 되면 즉시 승리! 손패가 <strong>16장 이상</strong>이 되면 파산 처리됩니다.</div>
       </div>
 
       <table class="rules-table">
@@ -1230,7 +1369,7 @@
       <div class="modal-sub">진행 중인 게임 내용이 사라질 수 있습니다.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
         <button class="secondary-btn" id="btn-leave-cancel" type="button">계속하기</button>
-        <button class="primary-btn" id="btn-leave-confirm" type="button" style="background:linear-gradient(135deg,#d93b32,#a31d16);color:#fff;">나가기</button>
+        <button class="primary-btn" id="btn-leave-confirm" type="button" style="background:linear-gradient(135deg,#c82f25,#8f1811);color:#fff;">나가기</button>
       </div>
     </div>
   </div>
@@ -1240,18 +1379,17 @@
        1. 카드 색상 팔레트 & 종이접기 그래픽 엔진 (SVG + Canvas 공용)
        ===================================================================== */
     const CARD_PALETTE = {
-      red:    { main: '#d93b32', dark: '#b8241d', deep: '#871611', light: '#ff9e85', ray: 'rgba(255,220,200,0.18)', name: '빨강', hex: 0xd93b32 },
-      blue:   { main: '#2b8fd6', dark: '#1b6fb3', deep: '#10497d', light: '#a8dcff', ray: 'rgba(215,242,255,0.18)', name: '파랑', hex: 0x2b8fd6 },
-      green:  { main: '#68a832', dark: '#4b851e', deep: '#2e590e', light: '#d2f09e', ray: 'rgba(235,255,205,0.18)', name: '초록', hex: 0x68a832 },
-      yellow: { main: '#f2b632', dark: '#d99216', deep: '#9e6208', light: '#fff1b0', ray: 'rgba(255,250,210,0.24)', name: '노랑', hex: 0xf2b632 },
-      wild:   { main: '#383735', dark: '#1f1e1d', deep: '#100f0f', light: '#787672', ray: 'rgba(255,255,255,0.10)', name: '바람개비', hex: 0xf6c968 }
+      red:    { main: '#c82f25', dark: '#9e1f17', deep: '#75120c', light: '#e66052', ray: 'rgba(255,225,210,0.20)', name: '빨강', hex: 0xc82f25 },
+      blue:   { main: '#1e80cb', dark: '#14609e', deep: '#0b3e6b', light: '#5fb1eb', ray: 'rgba(220,245,255,0.20)', name: '파랑', hex: 0x1e80cb },
+      green:  { main: '#5d9c30', dark: '#41761c', deep: '#29500e', light: '#90c457', ray: 'rgba(235,255,210,0.20)', name: '초록', hex: 0x5d9c30 },
+      yellow: { main: '#ebb02d', dark: '#c98b14', deep: '#946107', light: '#f6d468', ray: 'rgba(255,250,215,0.26)', name: '노랑', hex: 0xebb02d },
+      wild:   { main: '#2b2b2b', dark: '#191919', deep: '#0d0d0d', light: '#575757', ray: 'rgba(255,255,255,0.10)', name: '바람개비', hex: 0xf6c968 }
     };
 
     const COLORS = ['red', 'blue', 'green', 'yellow'];
 
     /**
-     * 종이접기 리본 스타일 숫자(1~9)의 세그먼트 데이터 (200x280 기준 중앙 영역)
-     * 각 세그먼트는 { pts: [[x,y]...], shade: 'main'|'dark'|'deep' } 형태
+     * 종이접기 리본 스타일 숫자(1~9) 세그먼트 데이터 (200x280 좌표계)
      */
     const ORIGAMI_DIGITS = {
       '1': [
@@ -1315,9 +1453,6 @@
       ]
     };
 
-    /**
-     * 코너 미니 아이콘 SVG 문자열 생성 (좌상단/우하단 공용)
-     */
     function getCornerSVG(card, pal) {
       if (card.type === 'number') {
         return `<text x="27" y="42" text-anchor="middle" font-size="25" font-weight="900" font-family="Arial Black, sans-serif" fill="${pal.main}" stroke="#fff" stroke-width="5" paint-order="stroke">${card.value}</text>`;
@@ -1342,14 +1477,13 @@
       if (card.type === 'plus2') {
         return `<text x="30" y="40" text-anchor="middle" font-size="20" font-weight="900" font-family="Arial Black, sans-serif" fill="${pal.main}" stroke="#fff" stroke-width="5" paint-order="stroke">+2</text>`;
       }
-      // wild pinwheel
       return `
         <g transform="translate(27,31) scale(0.42)">
           <circle r="30" fill="#fff" opacity="0.95"/>
-          <path d="M0,0 L0,-24 L18,-12 Z" fill="#d93b32"/>
-          <path d="M0,0 L24,0 L12,18 Z" fill="#2b8fd6"/>
-          <path d="M0,0 L0,24 L-18,12 Z" fill="#68a832"/>
-          <path d="M0,0 L-24,0 L-12,-18 Z" fill="#f2b632"/>
+          <path d="M0,0 L0,-24 L18,-12 Z" fill="#c82f25"/>
+          <path d="M0,0 L24,0 L12,18 Z" fill="#1e80cb"/>
+          <path d="M0,0 L0,24 L-18,12 Z" fill="#5d9c30"/>
+          <path d="M0,0 L-24,0 L-12,-18 Z" fill="#ebb02d"/>
           <circle r="3.5" fill="#fff"/>
         </g>`;
     }
@@ -1361,7 +1495,6 @@
       const pal = CARD_PALETTE[card.color] || CARD_PALETTE.wild;
       const uid = 'c_' + Math.random().toString(36).slice(2, 9);
 
-      // 16갈래 방사형 선버스트 광선
       let rays = '';
       for (let i = 0; i < 16; i++) {
         const a1 = (i * 22.5) * Math.PI / 180;
@@ -1373,7 +1506,6 @@
         rays += `<polygon points="100,140 ${x1.toFixed(1)},${y1.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" fill="${pal.ray}"/>`;
       }
 
-      // 중앙 일러스트
       let centerSVG = '';
       if (card.type === 'number') {
         const segs = ORIGAMI_DIGITS[String(card.value)] || ORIGAMI_DIGITS['1'];
@@ -1385,27 +1517,21 @@
       } else if (card.type === 'lock') {
         centerSVG = `
           <g filter="url(#sh_${uid})">
-            <!-- 흰색 외곽 실루엣 -->
             <path d="M72,126 V100 A28,28 0 0,1 128,100 V126" fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round"/>
             <rect x="46" y="122" width="108" height="90" rx="14" fill="#fff" stroke="#fff" stroke-width="12"/>
           </g>
-          <!-- 자물쇠 고리 (입체 접힘) -->
           <path d="M72,126 V100 A28,28 0 0,1 128,100 V126" fill="none" stroke="${pal.dark}" stroke-width="15" stroke-linecap="round"/>
           <path d="M72,126 V100 A28,28 0 0,1 100,72" fill="none" stroke="${pal.main}" stroke-width="15" stroke-linecap="round"/>
-          <!-- 자물쇠 몸체 -->
           <rect x="48" y="122" width="104" height="88" rx="11" fill="${pal.main}"/>
           <polygon points="48,122 152,122 152,210 112,210" fill="${pal.dark}" opacity="0.45"/>
           <rect x="48" y="122" width="104" height="88" rx="11" fill="none" stroke="${pal.deep}" stroke-width="3"/>
-          <!-- 가운데 세로 열쇠구멍/느낌표 슬롯 (사진 그대로) -->
           <rect x="92" y="144" width="16" height="44" rx="4" fill="#fff"/>
           <rect x="92" y="144" width="16" height="44" rx="4" fill="none" stroke="${pal.deep}" stroke-width="2" opacity="0.35"/>`;
       } else if (card.type === 'airplane') {
         centerSVG = `
           <g filter="url(#sh_${uid})">
-            <!-- 회전 궤적 곡선 -->
             <path d="M44,186 C26,136 52,78 114,76 C150,74 170,104 162,136" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" opacity="0.92"/>
             <path d="M44,186 C26,136 52,78 114,76 C150,74 170,104 162,136" fill="none" stroke="${pal.light}" stroke-width="9" stroke-linecap="round"/>
-            <!-- 종이비행기 본체 -->
             <polygon points="164,86 42,148 92,164 106,204 128,174 164,86" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/>
           </g>
           <polygon points="164,86 42,148 92,164" fill="${pal.main}" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
@@ -1419,12 +1545,11 @@
           <defs>
             <pattern id="dots_${uid}" width="14" height="14" patternUnits="userSpaceOnUse">
               <rect width="14" height="14" fill="${pal.main}"/>
-              <circle cx="4" cy="4" r="2.2" fill="#fff" opacity="0.88"/>
-              <circle cx="11" cy="11" r="2.2" fill="#fff" opacity="0.88"/>
+              <circle cx="4" cy="4" r="2.2" fill="#fff" opacity="0.9"/>
+              <circle cx="11" cy="11" r="2.2" fill="#fff" opacity="0.9"/>
             </pattern>
           </defs>
           <g filter="url(#sh_${uid})">
-            <!-- + 기호 외곽 -->
             <path d="M54,104 V148 M32,126 H76" stroke="#fff" stroke-width="24" stroke-linecap="round"/>
             ${out2}
           </g>
@@ -1432,7 +1557,6 @@
           <path d="M54,104 V148 M32,126 H76" stroke="${pal.main}" stroke-width="9" stroke-linecap="round"/>
           <g>${fill2}</g>`;
       } else {
-        // 바람개비 (4색 날개)
         centerSVG = `
           <g transform="translate(100,140)" filter="url(#sh_${uid})">
             <g stroke="#fff" stroke-width="11" stroke-linejoin="round" fill="#fff">
@@ -1441,19 +1565,15 @@
               <path d="M0,0 L0,68 L-54,34 L-22,0 Z"/>
               <path d="M0,0 L-68,0 L-34,-54 L0,-22 Z"/>
             </g>
-            <!-- 빨강 날개 (상단) -->
-            <path d="M0,0 L0,-68 L54,-34 L22,0 Z" fill="#d93b32"/>
-            <path d="M0,0 L0,-68 L22,0 Z" fill="#b8241d" opacity="0.55"/>
-            <!-- 파랑 날개 (우측) -->
-            <path d="M0,0 L68,0 L34,54 L0,22 Z" fill="#2b8fd6"/>
-            <path d="M0,0 L68,0 L0,22 Z" fill="#1b6fb3" opacity="0.55"/>
-            <!-- 초록 날개 (하단) -->
-            <path d="M0,0 L0,68 L-54,34 L-22,0 Z" fill="#68a832"/>
-            <path d="M0,0 L0,68 L-22,0 Z" fill="#4b851e" opacity="0.55"/>
-            <!-- 노랑 날개 (좌측) -->
-            <path d="M0,0 L-68,0 L-34,-54 L0,-22 Z" fill="#f2b632"/>
-            <path d="M0,0 L-68,0 L0,-22 Z" fill="#d99216" opacity="0.55"/>
-            <circle r="9" fill="#fff" stroke="#383735" stroke-width="2.5"/>
+            <path d="M0,0 L0,-68 L54,-34 L22,0 Z" fill="#c82f25"/>
+            <path d="M0,0 L0,-68 L22,0 Z" fill="#9e1f17" opacity="0.55"/>
+            <path d="M0,0 L68,0 L34,54 L0,22 Z" fill="#1e80cb"/>
+            <path d="M0,0 L68,0 L0,22 Z" fill="#14609e" opacity="0.55"/>
+            <path d="M0,0 L0,68 L-54,34 L-22,0 Z" fill="#5d9c30"/>
+            <path d="M0,0 L0,68 L-22,0 Z" fill="#41761c" opacity="0.55"/>
+            <path d="M0,0 L-68,0 L-34,-54 L0,-22 Z" fill="#ebb02d"/>
+            <path d="M0,0 L-68,0 L0,-22 Z" fill="#c98b14" opacity="0.55"/>
+            <circle r="9" fill="#fff" stroke="#2b2b2b" stroke-width="2.5"/>
           </g>`;
       }
 
@@ -1473,27 +1593,18 @@
               <feDropShadow dx="3" dy="5" stdDeviation="3" flood-color="#000" flood-opacity="0.38"/>
             </filter>
           </defs>
-          <!-- 흰색 둥근 외곽 프레임 -->
           <rect x="1" y="1" width="198" height="278" rx="18" fill="#ffffff" stroke="#e2d9cb" stroke-width="2"/>
-          <!-- 방사형 배경 + 선버스트 -->
           <g clip-path="url(#clip_${uid})">
             <rect x="10" y="10" width="180" height="260" fill="url(#bg_${uid})"/>
             ${rays}
-            <!-- 은은한 테두리 비네트 -->
             <rect x="10" y="10" width="180" height="260" rx="14" fill="none" stroke="rgba(0,0,0,0.16)" stroke-width="6"/>
           </g>
-          <!-- 중앙 종이접기 그래픽 -->
           ${centerSVG}
-          <!-- 좌상단 코너 -->
           ${corner}
-          <!-- 우하단 180도 회전 코너 -->
           <g transform="rotate(180 100 140)">${corner}</g>
         </svg>`;
     }
 
-    /**
-     * 카드 뒷면 SVG (2D 폴백용)
-     */
     function createCardBackSVG() {
       return `
         <svg viewBox="0 0 200 280" xmlns="http://www.w3.org/2000/svg">
@@ -1501,10 +1612,10 @@
           <rect x="11" y="11" width="178" height="258" rx="13" fill="#2b1e16"/>
           <rect x="20" y="20" width="160" height="240" rx="10" fill="none" stroke="#f6c968" stroke-width="3" stroke-dasharray="8 5"/>
           <g transform="translate(100,140) scale(0.75)">
-            <path d="M0,0 L0,-56 L44,-28 L18,0 Z" fill="#d93b32"/>
-            <path d="M0,0 L56,0 L28,44 L0,18 Z" fill="#2b8fd6"/>
-            <path d="M0,0 L0,56 L-44,28 L-18,0 Z" fill="#68a832"/>
-            <path d="M0,0 L-56,0 L-28,-44 L0,-18 Z" fill="#f2b632"/>
+            <path d="M0,0 L0,-56 L44,-28 L18,0 Z" fill="#c82f25"/>
+            <path d="M0,0 L56,0 L28,44 L0,18 Z" fill="#1e80cb"/>
+            <path d="M0,0 L0,56 L-44,28 L-18,0 Z" fill="#5d9c30"/>
+            <path d="M0,0 L-56,0 L-28,-44 L0,-18 Z" fill="#ebb02d"/>
             <circle r="8" fill="#fff"/>
           </g>
           <text x="100" y="232" text-anchor="middle" font-size="18" font-weight="900" fill="#f6c968" letter-spacing="2">ONE CARD</text>
@@ -1531,11 +1642,10 @@
       c.width = 400;
       c.height = 560;
       const ctx = c.getContext('2d');
-      ctx.scale(2, 2); // 200x280 좌표계 사용
+      ctx.scale(2, 2);
 
       const pal = CARD_PALETTE[card.color] || CARD_PALETTE.wild;
 
-      // 흰색 둥근 외곽
       drawRoundRect(ctx, 1, 1, 198, 278, 18);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
@@ -1543,7 +1653,6 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // 내부 클리핑 & 방사형 배경
       ctx.save();
       drawRoundRect(ctx, 10, 10, 180, 260, 14);
       ctx.clip();
@@ -1555,7 +1664,6 @@
       ctx.fillStyle = grad;
       ctx.fillRect(10, 10, 180, 260);
 
-      // 방사형 선버스트 광선
       ctx.fillStyle = pal.ray;
       for (let i = 0; i < 16; i++) {
         const a1 = (i * 22.5) * Math.PI / 180;
@@ -1569,11 +1677,9 @@
       }
       ctx.restore();
 
-      // 중앙 그래픽
       ctx.save();
       if (card.type === 'number') {
         const segs = ORIGAMI_DIGITS[String(card.value)] || ORIGAMI_DIGITS['1'];
-        // 흰색 외곽 + 그림자
         ctx.save();
         ctx.shadowColor = 'rgba(0,0,0,0.38)';
         ctx.shadowBlur = 7;
@@ -1591,7 +1697,6 @@
           ctx.fill();
         });
         ctx.restore();
-        // 종이접기 면 채우기
         segs.forEach(s => {
           ctx.beginPath();
           s.pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
@@ -1648,7 +1753,6 @@
         ctx.shadowBlur = 7;
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 5;
-        // 궤적
         ctx.beginPath();
         ctx.moveTo(44, 186);
         ctx.bezierCurveTo(26, 136, 52, 78, 114, 76);
@@ -1661,7 +1765,6 @@
         ctx.lineWidth = 8;
         ctx.stroke();
 
-        // 비행기 외곽
         const planePts = [[164,86],[42,148],[92,164],[106,204],[128,174]];
         ctx.beginPath();
         planePts.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
@@ -1674,7 +1777,6 @@
         ctx.fill();
         ctx.restore();
 
-        // 날개 3면
         const faces = [
           { pts: [[164,86],[42,148],[92,164]], fill: pal.main },
           { pts: [[164,86],[92,164],[106,204],[122,170]], fill: pal.deep },
@@ -1692,13 +1794,12 @@
         });
       } else if (card.type === 'plus2') {
         const segs2 = ORIGAMI_DIGITS['2'];
-        // 도트 패턴 생성
         const patC = document.createElement('canvas');
         patC.width = 14; patC.height = 14;
         const pctx = patC.getContext('2d');
         pctx.fillStyle = pal.main;
         pctx.fillRect(0, 0, 14, 14);
-        pctx.fillStyle = 'rgba(255,255,255,0.88)';
+        pctx.fillStyle = 'rgba(255,255,255,0.9)';
         pctx.beginPath(); pctx.arc(4, 4, 2.2, 0, Math.PI * 2); pctx.fill();
         pctx.beginPath(); pctx.arc(11, 11, 2.2, 0, Math.PI * 2); pctx.fill();
         const dotPat = ctx.createPattern(patC, 'repeat');
@@ -1747,14 +1848,13 @@
           ctx.stroke();
         });
       } else {
-        // 바람개비
         ctx.save();
         ctx.translate(100, 140);
         const blades = [
-          { pts: [[0,0],[0,-68],[54,-34],[22,0]], col: '#d93b32' },
-          { pts: [[0,0],[68,0],[34,54],[0,22]], col: '#2b8fd6' },
-          { pts: [[0,0],[0,68],[-54,34],[-22,0]], col: '#68a832' },
-          { pts: [[0,0],[-68,0],[-34,-54],[0,-22]], col: '#f2b632' }
+          { pts: [[0,0],[0,-68],[54,-34],[22,0]], col: '#c82f25' },
+          { pts: [[0,0],[68,0],[34,54],[0,22]], col: '#1e80cb' },
+          { pts: [[0,0],[0,68],[-54,34],[-22,0]], col: '#5d9c30' },
+          { pts: [[0,0],[-68,0],[-34,-54],[0,-22]], col: '#ebb02d' }
         ];
         ctx.save();
         ctx.shadowColor = 'rgba(0,0,0,0.45)';
@@ -1782,14 +1882,13 @@
         ctx.arc(0, 0, 9, 0, Math.PI * 2);
         ctx.fillStyle = '#fff';
         ctx.fill();
-        ctx.strokeStyle = '#383735';
+        ctx.strokeStyle = '#2b2b2b';
         ctx.lineWidth = 2.5;
         ctx.stroke();
         ctx.restore();
       }
       ctx.restore();
 
-      // 코너 표시 (좌상단 & 우하단 180도 회전)
       const drawCorner = () => {
         ctx.save();
         if (card.type === 'number' || card.type === 'plus2') {
@@ -1831,7 +1930,7 @@
           ctx.arc(27, 31, 13, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(255,255,255,0.95)';
           ctx.fill();
-          const cols = ['#d93b32', '#2b8fd6', '#68a832', '#f2b632'];
+          const cols = ['#c82f25', '#1e80cb', '#5d9c30', '#ebb02d'];
           cols.forEach((col, idx) => {
             ctx.save();
             ctx.translate(27, 31);
@@ -1880,10 +1979,9 @@
       ctx.stroke();
       ctx.restore();
 
-      // 중앙 미니 바람개비 엠블럼
       ctx.save();
       ctx.translate(100, 132);
-      const cols = ['#d93b32', '#2b8fd6', '#68a832', '#f2b632'];
+      const cols = ['#c82f25', '#1e80cb', '#5d9c30', '#ebb02d'];
       cols.forEach((col, idx) => {
         ctx.save();
         ctx.rotate(idx * Math.PI / 2);
@@ -1919,7 +2017,7 @@
     }
 
     /* =====================================================================
-       2. Web Audio API 효과음 엔진 (외부 사운드 URL 없이 자체 합성)
+       2. Web Audio API 효과음 엔진 (자체 합성 · 오클릭 경고음 포함)
        ===================================================================== */
     const SoundFX = (() => {
       let ctx = null;
@@ -1964,6 +2062,11 @@
         drawCard() {
           tone(240, 0.07, 'sine', 0.1, 0);
           tone(190, 0.09, 'triangle', 0.09, 0.04);
+        },
+        invalid() {
+          // 힌트 OFF 오클릭 부드러운 경고 효과음
+          tone(210, 0.09, 'triangle', 0.14, 0);
+          tone(160, 0.12, 'triangle', 0.13, 0.07);
         },
         lock() {
           tone(587, 0.12, 'triangle', 0.16, 0);
@@ -2019,7 +2122,6 @@
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, 512, 512);
 
-        // 나뭇결 라인
         for (let i = 0; i < 90; i++) {
           ctx.strokeStyle = `rgba(38, 20, 10, ${0.06 + Math.random() * 0.09})`;
           ctx.lineWidth = 1 + Math.random() * 2.5;
@@ -2039,7 +2141,6 @@
         ctx.clearRect(0, 0, 512, 512);
         ctx.translate(256, 256);
 
-        // 4개의 곡선 화살표
         for (let i = 0; i < 4; i++) {
           ctx.save();
           ctx.rotate(i * Math.PI / 2);
@@ -2050,7 +2151,6 @@
           ctx.arc(0, 0, 212, 0.18, 1.15);
           ctx.stroke();
 
-          // 화살촉 (시계 방향)
           const ax = Math.cos(1.22) * 212;
           const ay = Math.sin(1.22) * 212;
           ctx.fillStyle = '#ffffff';
@@ -2102,7 +2202,6 @@
 
           raycaster = new THREE.Raycaster();
 
-          // 따뜻한 원목 놀이방 조명
           scene.add(new THREE.AmbientLight(0xffe8cc, 0.55));
           const dirLight = new THREE.DirectionalLight(0xfff1dc, 0.95);
           dirLight.position.set(4, 14, 7);
@@ -2129,6 +2228,14 @@
           table.receiveShadow = true;
           scene.add(table);
 
+          // 중앙 부드러운 카드 패드
+          const padGeom = new THREE.CylinderGeometry(3.4, 3.45, 0.02, 48);
+          const padMat = new THREE.MeshStandardMaterial({ color: 0x3b2416, roughness: 0.9 });
+          const pad = new THREE.Mesh(padGeom, padMat);
+          pad.position.set(0, 0.005, -0.2);
+          pad.receiveShadow = true;
+          scene.add(pad);
+
           // 테이블 외곽 원목 테두리 링
           const rimGeom = new THREE.TorusGeometry(8.25, 0.24, 16, 64);
           const rimMat = new THREE.MeshStandardMaterial({ color: 0x3b2213, roughness: 0.5 });
@@ -2137,12 +2244,12 @@
           rim.position.y = 0.04;
           scene.add(rim);
 
-          // 현재 색상 글로우 링 (버린 카드 아래)
+          // 현재 활성 색상 글로우 링
           const glowGeom = new THREE.CircleGeometry(1.65, 36);
-          const glowMat = new THREE.MeshBasicMaterial({ color: 0xd93b32, transparent: true, opacity: 0.38 });
+          const glowMat = new THREE.MeshBasicMaterial({ color: 0xc82f25, transparent: true, opacity: 0.4 });
           glowMesh = new THREE.Mesh(glowGeom, glowMat);
           glowMesh.rotation.x = -Math.PI / 2;
-          glowMesh.position.set(1.15, 0.012, -0.2);
+          glowMesh.position.set(1.15, 0.018, -0.2);
           scene.add(glowMesh);
 
           // 진행 방향 회전 화살표 링
@@ -2156,22 +2263,20 @@
           });
           dirRingMesh = new THREE.Mesh(ringGeom, ringMat);
           dirRingMesh.rotation.x = -Math.PI / 2;
-          dirRingMesh.position.set(0, 0.018, -0.2);
+          dirRingMesh.position.set(0, 0.02, -0.2);
           scene.add(dirRingMesh);
 
-          // 그룹 초기화
           drawPileGroup = new THREE.Group();
-          drawPileGroup.position.set(-1.25, 0, -0.2);
+          drawPileGroup.position.set(-1.25, 0.015, -0.2);
           scene.add(drawPileGroup);
 
           discardPileGroup = new THREE.Group();
-          discardPileGroup.position.set(1.15, 0, -0.2);
+          discardPileGroup.position.set(1.15, 0.015, -0.2);
           scene.add(discardPileGroup);
 
           oppFansGroup = new THREE.Group();
           scene.add(oppFansGroup);
 
-          // 카메라 살짝 드래그 & 드로우 더미 클릭 감지
           const dom = renderer.domElement;
           let downX = 0, downY = 0;
 
@@ -2231,7 +2336,6 @@
       function syncTable(state, myIndex) {
         if (!ready) return;
 
-        // 1. 드로우 더미 스택 갱신
         clearGroup(drawPileGroup);
         const drawVisCount = Math.min(Math.ceil(state.drawCount / 3), 14);
         for (let i = 0; i < drawVisCount; i++) {
@@ -2241,7 +2345,6 @@
           drawPileGroup.add(m);
         }
 
-        // 2. 버린 카드 더미 갱신 (최근 10장 자연스럽게 흩어진 각도)
         clearGroup(discardPileGroup);
         const recent = state.discardRecent || [];
         recent.forEach((c, idx) => {
@@ -2255,14 +2358,12 @@
           discardPileGroup.add(m);
         });
 
-        // 3. 활성 색상 글로우 & 회전 링
         const pal = CARD_PALETTE[state.activeColor] || CARD_PALETTE.red;
         glowMesh.material.color.setHex(pal.hex);
         dirRingMesh.material.color.setHex(pal.hex);
         currentDir = state.direction || 1;
         dirRingMesh.scale.x = currentDir === 1 ? 1 : -1;
 
-        // 4. 상대방 3D 뒷면 카드 부채꼴 배치
         clearGroup(oppFansGroup);
         const seats = getRelativeSeats(state.players, myIndex);
         seats.forEach(seat => {
@@ -2291,21 +2392,12 @@
         });
       }
 
-      /**
-       * 카드 내기 / 뽑기 3D 포물선 비행 애니메이션
-       */
       function spawnFlyingCard(fromPos, toPos, card, faceUp = true) {
         if (!ready) return;
         const m = createCardMesh(card, faceUp);
         m.position.copy(fromPos);
         scene.add(m);
-        flyingCards.push({
-          mesh: m,
-          from: fromPos.clone(),
-          to: toPos.clone(),
-          t: 0,
-          dur: 0.38
-        });
+        flyingCards.push({ mesh: m, from: fromPos.clone(), to: toPos.clone(), t: 0, dur: 0.38 });
       }
 
       function seatTo3D(posName) {
@@ -2320,7 +2412,7 @@
 
       function spawnVictoryBurst() {
         if (!ready) return;
-        const cols = [0xd93b32, 0x2b8fd6, 0x68a832, 0xf2b632, 0xffffff];
+        const cols = [0xc82f25, 0x1e80cb, 0x5d9c30, 0xebb02d, 0xffffff];
         for (let i = 0; i < 65; i++) {
           const g = new THREE.BoxGeometry(0.16, 0.16, 0.04);
           const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: cols[i % cols.length] }));
@@ -2328,13 +2420,7 @@
           scene.add(m);
           const a = Math.random() * Math.PI * 2;
           const spd = 2.5 + Math.random() * 5;
-          particles.push({
-            mesh: m,
-            vx: Math.cos(a) * spd,
-            vy: 4 + Math.random() * 6,
-            vz: Math.sin(a) * spd,
-            life: 2.2
-          });
+          particles.push({ mesh: m, vx: Math.cos(a) * spd, vy: 4 + Math.random() * 6, vz: Math.sin(a) * spd, life: 2.2 });
         }
       }
 
@@ -2345,7 +2431,6 @@
         const dt = Math.min((now - lastTime) / 1000, 0.05);
         lastTime = now;
 
-        // 카메라 부드러운 시점 복귀/회전
         const radius = 12.8;
         const basePitch = 0.78 + targetPitch;
         camera.position.x += (Math.sin(targetYaw) * radius * Math.cos(basePitch) - camera.position.x) * 0.08;
@@ -2353,15 +2438,9 @@
         camera.position.z += (Math.cos(targetYaw) * radius * Math.cos(basePitch) - camera.position.z) * 0.08;
         camera.lookAt(0, 0, 0.6);
 
-        // 진행 방향 화살표 링 회전
-        if (dirRingMesh) {
-          dirRingMesh.rotation.z -= currentDir * dt * 0.48;
-        }
-        if (glowMesh) {
-          glowMesh.material.opacity = 0.28 + Math.sin(now * 0.004) * 0.12;
-        }
+        if (dirRingMesh) dirRingMesh.rotation.z -= currentDir * dt * 0.48;
+        if (glowMesh) glowMesh.material.opacity = 0.28 + Math.sin(now * 0.004) * 0.12;
 
-        // 비행 카드 업데이트
         for (let i = flyingCards.length - 1; i >= 0; i--) {
           const fc = flyingCards[i];
           fc.t += dt / fc.dur;
@@ -2376,7 +2455,6 @@
           }
         }
 
-        // 폭죽 파티클
         for (let i = particles.length - 1; i >= 0; i--) {
           const p = particles[i];
           p.life -= dt;
@@ -2400,23 +2478,60 @@
     })();
 
     /* =====================================================================
-       4. 원카드 게임 핵심 로직 (64장 덱, 규칙, AI, 멀티 상태 관리)
+       4. 원카드 게임 핵심 로직 (64장 덱, 규칙, 힌트 옵션, AI, 멀티 상태)
        ===================================================================== */
+    const HINT_STORAGE_KEY = 'onecard_show_playable_hint';
+    let showPlayableHint = true;
+    try {
+      const saved = localStorage.getItem(HINT_STORAGE_KEY);
+      if (saved === 'false') showPlayableHint = false;
+    } catch (_) {}
+
     let appMode = 'ai'; // 'ai' | 'online-host' | 'online-client' | 'spectator'
-    let aiDifficulty = 'normal';
+    let aiDifficulty = 'normal'; // 'easy' | 'normal'
     let myPlayerIndex = 0;
-    let gameState = null; // 호스트/로컬이 보유하는 전체 상태
-    let viewState = null; // 렌더링에 사용하는 현재 뷰 상태
+    let gameState = null;
+    let viewState = null;
     let pendingWildCardId = null;
     let aiTimer = null;
     let toastTimer = null;
 
     /**
-     * 정확히 64장 덱 생성:
-     * - 4색 × (1~9 각 1장 = 36장)
-     * - 4색 × (자물쇠 2장 = 8장, 비행기 2장 = 8장, +2 2장 = 8장)
-     * - 바람개비 4장
-     * 총합 = 64장
+     * 힌트 ON/OFF 상태 저장 + 상단 HUD 버튼 / 시작 모달 토글 동기화 + 손패 즉시 재렌더
+     */
+    function setPlayableHint(enabled, silent = false) {
+      showPlayableHint = !!enabled;
+      try {
+        localStorage.setItem(HINT_STORAGE_KEY, String(showPlayableHint));
+      } catch (_) {}
+
+      const hudBtn = document.getElementById('btn-hint-toggle');
+      if (hudBtn) {
+        hudBtn.textContent = showPlayableHint ? '💡 힌트: ON' : '💡 힌트: OFF';
+        hudBtn.classList.toggle('hint-on', showPlayableHint);
+        hudBtn.classList.toggle('hint-off', !showPlayableHint);
+      }
+
+      const modalChk = document.getElementById('modal-hint-checkbox');
+      if (modalChk) modalChk.checked = showPlayableHint;
+
+      const modalDesc = document.getElementById('modal-hint-desc');
+      if (modalDesc) {
+        modalDesc.textContent = showPlayableHint
+          ? 'ON: 낼 수 있는 카드를 위로 강조 표시'
+          : 'OFF: 실제 카드처럼 모든 손패를 동일하게 표시';
+      }
+
+      if (viewState) renderHandTray(viewState);
+      if (!silent) {
+        showToast(showPlayableHint
+          ? '💡 낼 수 있는 카드 표시: ON'
+          : '💡 낼 수 있는 카드 표시: OFF (직접 찾아 내기 모드)');
+      }
+    }
+
+    /**
+     * 정확히 64장 덱 생성
      */
     function buildDeck64() {
       const deck = [];
@@ -2460,26 +2575,15 @@
       return fromIdx;
     }
 
-    /**
-     * 카드 낼 수 있는지 판별
-     */
     function canPlayCard(card, topCard, activeColor, attackStack) {
       if (!card || !topCard) return false;
-      // +2 공격 방어 중에는 +2 카드만 낼 수 있음 (바람개비 불가)
-      if (attackStack > 0) {
-        return card.type === 'plus2';
-      }
-      // 바람개비(와일드)는 공격 중이 아닐 때 언제든 가능
+      if (attackStack > 0) return card.type === 'plus2';
       if (card.type === 'wild') return true;
-      // 같은 색상 또는 같은 숫자/기능
       if (card.color === activeColor) return true;
       if (card.type === topCard.type && card.value === topCard.value) return true;
       return false;
     }
 
-    /**
-     * 내 시점 기준 상대 좌석 위치 계산 (bottom, top, left, right)
-     */
     function getRelativeSeats(players, refIdx) {
       const n = players.length;
       const base = refIdx >= 0 ? refIdx : 0;
@@ -2487,21 +2591,14 @@
       for (let i = 0; i < n; i++) {
         const idx = (base + i) % n;
         let pos = 'bottom';
-        if (n === 2) {
-          pos = i === 0 ? 'bottom' : 'top';
-        } else if (n === 3) {
-          pos = i === 0 ? 'bottom' : (i === 1 ? 'left' : 'right');
-        } else {
-          pos = i === 0 ? 'bottom' : (i === 1 ? 'left' : (i === 2 ? 'top' : 'right'));
-        }
+        if (n === 2) pos = i === 0 ? 'bottom' : 'top';
+        else if (n === 3) pos = i === 0 ? 'bottom' : (i === 1 ? 'left' : 'right');
+        else pos = i === 0 ? 'bottom' : (i === 1 ? 'left' : (i === 2 ? 'top' : 'right'));
         ordered.push({ index: idx, pos, player: players[idx] });
       }
       return ordered;
     }
 
-    /**
-     * 호스트/로컬 새 게임 생성
-     */
     function createInitialGameState(playerConfigs) {
       const deck = buildDeck64();
       const players = playerConfigs.map((cfg, idx) => ({
@@ -2513,12 +2610,10 @@
         calledOneCard: false
       }));
 
-      // 각 플레이어에게 7장 배분
       for (let r = 0; r < 7; r++) {
         players.forEach(p => p.hand.push(deck.pop()));
       }
 
-      // 첫 바닥 카드는 숫자 카드(1~9)로 시작
       let firstIdx = deck.findIndex(c => c.type === 'number');
       if (firstIdx < 0) firstIdx = 0;
       const firstCard = deck.splice(firstIdx, 1)[0];
@@ -2527,7 +2622,7 @@
         drawPile: deck,
         discardPile: [firstCard],
         activeColor: firstCard.color,
-        direction: 1, // 1: 시계, -1: 반시계
+        direction: 1,
         turnIndex: 0,
         attackStack: 0,
         players,
@@ -2538,9 +2633,6 @@
       };
     }
 
-    /**
-     * 드로우 더미에서 1장 뽑기 (비면 버린 카드 맨 위 1장만 남기고 자동 셔플)
-     */
     function drawOneFromDeck(st) {
       if (st.drawPile.length === 0) {
         if (st.discardPile.length <= 1) return null;
@@ -2552,9 +2644,6 @@
       return st.drawPile.pop() || null;
     }
 
-    /**
-     * 플레이어 카드 내기 처리 (호스트/로컬 권한)
-     */
     function processPlayCard(playerIdx, cardId, chosenColor) {
       const st = gameState;
       if (!st || st.winnerIndex !== null) return;
@@ -2568,14 +2657,13 @@
       const topCard = st.discardPile[st.discardPile.length - 1];
       if (!canPlayCard(card, topCard, st.activeColor, st.attackStack)) return;
 
-      // 카드 제거 후 버린 더미로 이동
       player.hand.splice(cIdx, 1);
       st.discardPile.push(card);
       if (player.hand.length > 1) player.calledOneCard = false;
 
       st.lastAnim = { type: 'play', playerIdx, card };
 
-      // 0장 달성 시 즉시 승리!
+      // 0장 달성 시 즉시 승리
       if (player.hand.length === 0) {
         st.activeColor = card.type === 'wild' ? (chosenColor || st.activeColor) : card.color;
         st.winnerIndex = playerIdx;
@@ -2587,40 +2675,45 @@
         return;
       }
 
-      // 카드별 효과 처리
+      // 손패 1장 남으면 자동 "원카드!" 연출
+      let oneCardSuffix = '';
+      if (player.hand.length === 1) {
+        player.calledOneCard = true;
+        oneCardSuffix = ' · 🃏 원카드!!';
+        SoundFX.onecard();
+      }
+
       const activeCnt = getActivePlayersCount(st);
       if (card.type === 'wild') {
         const nextCol = COLORS.includes(chosenColor) ? chosenColor : 'red';
         st.activeColor = nextCol;
-        st.lastActionText = `🌀 ${player.name}님 바람개비! → ${CARD_PALETTE[nextCol].name} 선택`;
+        st.lastActionText = `🌀 ${player.name}님 바람개비! → ${CARD_PALETTE[nextCol].name} 선택${oneCardSuffix}`;
         SoundFX.wild();
         st.turnIndex = getNextActiveIndex(st, playerIdx, st.direction);
       } else if (card.type === 'lock') {
         st.activeColor = card.color;
-        st.lastActionText = `🔒 ${player.name}님 자물쇠! 한 번 더!`;
+        st.lastActionText = `🔒 ${player.name}님 자물쇠! 한 번 더!${oneCardSuffix}`;
         SoundFX.lock();
-        // 턴 유지 (한 번 더!)
       } else if (card.type === 'airplane') {
         st.activeColor = card.color;
         SoundFX.airplane();
         if (activeCnt === 2) {
-          // 1대1 경기에서는 한 번 더 기능 발동!
-          st.lastActionText = `✈️ ${player.name}님 비행기! (1:1 한 번 더!)`;
+          st.lastActionText = `✈️ ${player.name}님 비행기! (1:1 한 번 더!)${oneCardSuffix}`;
         } else {
           st.direction *= -1;
-          st.lastActionText = `✈️ ${player.name}님 비행기! 방향 반대로 (${st.direction === 1 ? '시계' : '반시계'})`;
+          st.lastActionText = `✈️ ${player.name}님 비행기! 방향 반대로 (${st.direction === 1 ? '시계' : '반시계'})${oneCardSuffix}`;
           st.turnIndex = getNextActiveIndex(st, playerIdx, st.direction);
         }
       } else if (card.type === 'plus2') {
         st.activeColor = card.color;
         st.attackStack += 2;
-        st.lastActionText = `⚡ ${player.name}님 +2 공격! (누적 +${st.attackStack}장)`;
+        st.lastActionText = `⚡ ${player.name}님 +2 공격! (누적 +${st.attackStack}장)${oneCardSuffix}`;
         SoundFX.attack();
         st.turnIndex = getNextActiveIndex(st, playerIdx, st.direction);
       } else {
         st.activeColor = card.color;
-        st.lastActionText = `${player.name}님: ${CARD_PALETTE[card.color].name} ${card.value}`;
-        SoundFX.playCard();
+        st.lastActionText = `${player.name}님: ${CARD_PALETTE[card.color].name} ${card.value}${oneCardSuffix}`;
+        if (!oneCardSuffix) SoundFX.playCard();
         st.turnIndex = getNextActiveIndex(st, playerIdx, st.direction);
       }
 
@@ -2628,9 +2721,6 @@
       scheduleAIIfNeeded();
     }
 
-    /**
-     * 플레이어 드로우 / 공격 받기 처리 (호스트/로컬 권한)
-     */
     function processDrawCards(playerIdx) {
       const st = gameState;
       if (!st || st.winnerIndex !== null) return;
@@ -2653,10 +2743,8 @@
       st.lastAnim = { type: 'draw', playerIdx, count: drawnActual };
       SoundFX.drawCard();
 
-      // 파산 판정 (16장 이상)
       if (player.hand.length >= 16) {
         player.bankrupt = true;
-        // 파산자 카드는 드로우 더미로 반환 셔플
         st.drawPile = shuffle(st.drawPile.concat(player.hand));
         player.hand = [];
         st.lastActionText = `💥 ${player.name}님 16장 이상 파산!`;
@@ -2681,9 +2769,6 @@
       scheduleAIIfNeeded();
     }
 
-    /**
-     * 원카드 외침 처리
-     */
     function processOneCardShout(playerIdx) {
       const st = gameState;
       if (!st || st.winnerIndex !== null) return;
@@ -2695,9 +2780,6 @@
       syncAndRender();
     }
 
-    /**
-     * AI 턴 자동 실행
-     */
     function scheduleAIIfNeeded() {
       if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
       const st = gameState;
@@ -2722,22 +2804,15 @@
         return;
       }
 
-      // 손패 2장일 때 1장 남기기 전 원카드 외침
-      if (ai.hand.length === 2 && !ai.calledOneCard) {
-        ai.calledOneCard = true;
-        SoundFX.onecard();
-      }
-
       let chosen = playable[0];
-      if (aiDifficulty === 'hard') {
-        // 어려움 AI: +2 공격 > 자물쇠/1:1비행기(연속턴) > 숫자 > 바람개비(아껴두기)
+      if (aiDifficulty === 'normal') {
         const activeCnt = getActivePlayersCount(st);
         const scoreCard = (c) => {
           if (c.type === 'plus2') return 50;
           if (c.type === 'lock') return 45;
           if (c.type === 'airplane') return activeCnt === 2 ? 44 : 35;
           if (c.type === 'number') return 25;
-          return 10; // wild는 최후의 수단
+          return 10;
         };
         playable.sort((a, b) => scoreCard(b) - scoreCard(a));
         chosen = playable[0];
@@ -2745,7 +2820,6 @@
         chosen = playable[Math.floor(Math.random() * playable.length)];
       }
 
-      // 바람개비일 경우 손패에 가장 많은 색상 선택
       let wildColor = 'red';
       if (chosen.type === 'wild') {
         const counts = { red: 0, blue: 0, green: 0, yellow: 0 };
@@ -2757,7 +2831,7 @@
     }
 
     /* =====================================================================
-       5. 상태 직렬화(플레이어별 손패 비공개) & UI 렌더링
+       5. 상태 직렬화 & UI 렌더링 (힌트 ON/OFF 손패 처리 포함)
        ===================================================================== */
     function buildViewFor(st, viewerIdx) {
       return {
@@ -2790,8 +2864,72 @@
       if (appMode === 'online-host') {
         Net.broadcastGameState(gameState);
       }
-      const v = buildViewFor(gameState, myPlayerIndex);
-      applyViewState(v);
+      applyViewState(buildViewFor(gameState, myPlayerIndex));
+    }
+
+    /**
+     * 하단 손패 영역만 독립 렌더링 (힌트 토글 시 즉시 반영)
+     */
+    function renderHandTray(v) {
+      const handTray = document.getElementById('hand-tray');
+      const isSpectator = (v.myIndex < 0);
+      if (isSpectator) return;
+
+      const isMyTurn = (v.winnerIndex === null && v.turnIndex === v.myIndex);
+      const myHand = v.myHand || [];
+      const colorOrder = { red: 0, blue: 1, green: 2, yellow: 3, wild: 4 };
+      const sorted = myHand.slice().sort((a, b) => {
+        if (colorOrder[a.color] !== colorOrder[b.color]) return colorOrder[a.color] - colorOrder[b.color];
+        return String(a.value).localeCompare(String(b.value));
+      });
+
+      handTray.innerHTML = '';
+      sorted.forEach(card => {
+        const playableNow = isMyTurn && canPlayCard(card, v.topCard, v.activeColor, v.attackStack);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+
+        if (showPlayableHint) {
+          // 힌트 ON: 낼 수 있는 카드 강조, 없는 카드 어둡게
+          btn.className = 'hand-card ' + (playableNow ? 'playable' : 'unplayable');
+        } else {
+          // 힌트 OFF: 모든 카드 동일한 밝기 & 높이, 전부 클릭 가능
+          btn.className = 'hand-card hint-off';
+        }
+
+        btn.innerHTML = createCardSVG(card);
+        btn.addEventListener('click', () => {
+          if (v.winnerIndex !== null) return;
+          if (playableNow) {
+            onHumanCardClick(card);
+            return;
+          }
+          // 힌트 OFF일 때 낼 수 없는 카드 클릭 → 흔들림 + 경고음 + 토스트 사유 안내
+          if (!showPlayableHint) {
+            triggerInvalidCardFeedback(btn, v, isMyTurn);
+          }
+        });
+        handTray.appendChild(btn);
+      });
+    }
+
+    /**
+     * 힌트 OFF에서 낼 수 없는 카드 클릭 시 피드백 (shake + 경고음 + 안내 토스트)
+     */
+    function triggerInvalidCardFeedback(cardEl, v, isMyTurn) {
+      cardEl.classList.remove('shake');
+      void cardEl.offsetWidth; // 리플로우로 애니메이션 재시작 보장
+      cardEl.classList.add('shake');
+      setTimeout(() => cardEl.classList.remove('shake'), 380);
+
+      SoundFX.invalid();
+      if (!isMyTurn) {
+        showToast('⏳ 지금은 내 차례가 아닙니다!', true);
+      } else if (v.attackStack > 0) {
+        showToast('⚡ 공격 방어는 +2 카드만 낼 수 있습니다!', true);
+      } else {
+        showToast('❌ 낼 수 없는 카드입니다!', true);
+      }
     }
 
     function applyViewState(v) {
@@ -2799,7 +2937,6 @@
       const isSpectator = (v.myIndex < 0);
       const pal = CARD_PALETTE[v.activeColor] || CARD_PALETTE.red;
 
-      // 3D 비행 연출 트리거
       if (v.lastAnim && Scene3D.isReady()) {
         const seats = getRelativeSeats(v.players, v.myIndex);
         const seatObj = seats.find(s => s.index === v.lastAnim.playerIdx);
@@ -2811,7 +2948,6 @@
         }
       }
 
-      // 3D 테이블 갱신 또는 2D 폴백 갱신
       if (Scene3D.isReady()) {
         Scene3D.syncTable(v, v.myIndex);
       } else {
@@ -2822,7 +2958,6 @@
         document.getElementById('fb-active-color').style.color = pal.light;
       }
 
-      // 상단 HUD 갱신
       const curPlayer = v.players[v.turnIndex];
       const dot = document.getElementById('hud-color-dot');
       dot.style.background = pal.main;
@@ -2853,9 +2988,9 @@
         specEl.style.display = 'none';
       }
 
-      if (v.lastActionText) showToast(v.lastActionText);
+      if (v.lastActionText) showToast(v.lastActionText, false);
 
-      // 상대방 좌석 배지 갱신
+      // 상대방 좌석 배지
       const oppLayer = document.getElementById('opponents-layer');
       oppLayer.innerHTML = '';
       const seats = getRelativeSeats(v.players, v.myIndex);
@@ -2881,7 +3016,6 @@
         oppLayer.appendChild(div);
       });
 
-      // 하단 손패 & 조작 버튼 갱신
       const actionBar = document.getElementById('action-bar');
       const handTray = document.getElementById('hand-tray');
       const specFooter = document.getElementById('spectator-footer');
@@ -2900,7 +3034,6 @@
         const chip = document.getElementById('hand-count-chip');
         chip.classList.toggle('danger', myHand.length >= 13);
 
-        // 드로우 버튼
         const drawBtn = document.getElementById('btn-draw');
         drawBtn.disabled = !isMyTurn;
         if (v.attackStack > 0 && isMyTurn) {
@@ -2911,36 +3044,15 @@
           drawBtn.classList.remove('attack-draw');
         }
 
-        // 원카드 버튼 (손패 1~2장일 때 활성화)
         const me = v.players[v.myIndex];
         const ocBtn = document.getElementById('btn-onecard');
         const canShout = me && !me.bankrupt && myHand.length >= 1 && myHand.length <= 2 && !me.calledOneCard && v.winnerIndex === null;
         ocBtn.disabled = !canShout;
         ocBtn.classList.toggle('urgent', canShout && myHand.length === 1);
 
-        // 손패 정렬 (색상 → 숫자/기능 순)
-        const colorOrder = { red: 0, blue: 1, green: 2, yellow: 3, wild: 4 };
-        const sorted = myHand.slice().sort((a, b) => {
-          if (colorOrder[a.color] !== colorOrder[b.color]) return colorOrder[a.color] - colorOrder[b.color];
-          return String(a.value).localeCompare(String(b.value));
-        });
-
-        handTray.innerHTML = '';
-        sorted.forEach(card => {
-          const playable = isMyTurn && canPlayCard(card, v.topCard, v.activeColor, v.attackStack);
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'hand-card ' + (playable ? 'playable' : 'unplayable');
-          btn.innerHTML = createCardSVG(card);
-          btn.addEventListener('click', () => {
-            if (!playable) return;
-            onHumanCardClick(card);
-          });
-          handTray.appendChild(btn);
-        });
+        renderHandTray(v);
       }
 
-      // 게임 종료 결과 모달 표시
       if (v.winnerIndex !== null) {
         showResultModal(v);
       } else {
@@ -2951,7 +3063,6 @@
     function onHumanCardClick(card) {
       if (!viewState || viewState.winnerIndex !== null) return;
       if (card.type === 'wild') {
-        // 바람개비: 4색 선택 모달 열기
         pendingWildCardId = card.id;
         document.getElementById('color-modal').classList.remove('hidden');
         return;
@@ -3004,7 +3115,6 @@
           </div>
         `).join('');
 
-      // 관전자나 클라이언트는 다시하기 버튼 비활성화(방장만 재시작)
       const rematchBtn = document.getElementById('btn-rematch');
       if (appMode === 'online-client' || appMode === 'spectator') {
         rematchBtn.textContent = '방장 재시작 대기 중...';
@@ -3017,12 +3127,13 @@
       document.getElementById('result-modal').classList.remove('hidden');
     }
 
-    function showToast(msg) {
+    function showToast(msg, isWarn = false) {
       const el = document.getElementById('toast-banner');
       el.textContent = msg;
+      el.classList.toggle('warn', !!isWarn);
       el.classList.add('show');
       if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
     }
 
     function escapeHtml(str) {
@@ -3036,10 +3147,10 @@
       let peer = null;
       let roomCode = '';
       let maxPlayers = 2;
-      let hostConn = null; // 클라이언트/관전자가 방장과 맺은 연결
-      let playerConns = []; // 방장이 관리하는 참가자 연결 [{ conn, name, index }]
-      let spectatorConns = []; // 방장이 관리하는 관전자 연결 [{ conn, name }]
-      let myRole = 'host'; // 'host' | 'player' | 'spectator'
+      let hostConn = null;
+      let playerConns = [];
+      let spectatorConns = [];
+      let myRole = 'host';
       let myNick = '플레이어';
       let chatHistory = [];
       let unreadCount = 0;
@@ -3087,7 +3198,7 @@
 
       function createRoom(nick, maxP) {
         if (!window.Peer) {
-          showToast('⚠️ 온라인 라이브러리(PeerJS)를 불러오지 못했습니다.');
+          showToast('⚠️ 온라인 라이브러리(PeerJS)를 불러오지 못했습니다.', true);
           return;
         }
         cleanup();
@@ -3107,7 +3218,7 @@
           enableSocialUI(true);
         });
         peer.on('error', (err) => {
-          showToast(`⚠️ 연결 오류: ${err.type || '방 생성 실패'}`);
+          showToast(`⚠️ 연결 오류: ${err.type || '방 생성 실패'}`, true);
         });
         peer.on('connection', (conn) => {
           conn.on('data', (data) => handleHostReceive(conn, data));
@@ -3186,11 +3297,11 @@
 
       function joinRoom(code, nick, isSpectate) {
         if (!window.Peer) {
-          showToast('⚠️ 온라인 라이브러리(PeerJS)를 불러오지 못했습니다.');
+          showToast('⚠️ 온라인 라이브러리(PeerJS)를 불러오지 못했습니다.', true);
           return;
         }
         if (!/^\d{4}$/.test(code)) {
-          showToast('4자리 숫자로 된 방 번호를 입력해 주세요.');
+          showToast('4자리 숫자로 된 방 번호를 입력해 주세요.', true);
           return;
         }
         cleanup();
@@ -3238,7 +3349,7 @@
             }
           });
           hostConn.on('close', () => {
-            showToast('⚠️ 방장과의 연결이 종료되었습니다.');
+            showToast('⚠️ 방장과의 연결이 종료되었습니다.', true);
           });
         });
         peer.on('error', () => {
@@ -3335,9 +3446,6 @@
       setTimeout(() => el.remove(), 1650);
     }
 
-    /**
-     * 클립보드 복사 (iFrame 안전한 execCommand 방식 사용)
-     */
     function copyTextSafe(text, label) {
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -3375,6 +3483,14 @@
     }
 
     function bindEvents() {
+      // 힌트 ON/OFF 토글 (상단 HUD 버튼 & 시작 모달 스위치 상호 동기화)
+      document.getElementById('btn-hint-toggle').addEventListener('click', () => {
+        setPlayableHint(!showPlayableHint, false);
+      });
+      document.getElementById('modal-hint-checkbox').addEventListener('change', (e) => {
+        setPlayableHint(e.target.checked, true);
+      });
+
       // AI / 온라인 모드 탭 전환
       const tabAi = document.getElementById('mode-tab-ai');
       const tabOnline = document.getElementById('mode-tab-online');
@@ -3389,7 +3505,6 @@
         document.getElementById('panel-online').style.display = 'block';
       });
 
-      // 선택 필 그룹 공용 핸들러
       const bindChoiceGroup = (id) => {
         const row = document.getElementById(id);
         row.querySelectorAll('.choice-pill').forEach(btn => {
@@ -3403,7 +3518,6 @@
       bindChoiceGroup('ai-diff-row');
       bindChoiceGroup('online-max-row');
 
-      // 온라인 3개 하위 탭
       const oTabs = [
         { btn: 'online-tab-host', sub: 'online-sub-host' },
         { btn: 'online-tab-join', sub: 'online-sub-join' },
@@ -3535,9 +3649,6 @@
       });
     }
 
-    /**
-     * URL 파라미터(?room=XXXX, ?room=XXXX&spectate=1) 자동 파싱 (로비 호환)
-     */
     function checkUrlParams() {
       const params = new URLSearchParams(location.search);
       const room = params.get('room');
@@ -3557,6 +3668,7 @@
     window.onload = function () {
       initRulesSamples();
       bindEvents();
+      setPlayableHint(showPlayableHint, true);
       Scene3D.init();
       checkUrlParams();
     };
