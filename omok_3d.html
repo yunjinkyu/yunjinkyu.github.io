@@ -1,0 +1,2995 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>3D 한국 전통 오목 (20×20) · AI / 로컬 2인 / 온라인 대결 &amp; 관전</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js r128 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- PeerJS (WebRTC P2P Multiplayer & Host-Hub Spectating) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- Google Fonts: Jua & Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    input, textarea {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #23160f;
+      color: #fdf8f0;
+    }
+
+    .font-display {
+      font-family: 'Jua', 'Noto Sans KR', sans-serif;
+    }
+
+    /* 3D Canvas Container */
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      touch-action: none;
+    }
+
+    #canvas-container canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Strict Hidden Rule: Hidden overlays NEVER block clicks or touch events */
+    .hidden,
+    .modal-hidden {
+      display: none !important;
+      pointer-events: none !important;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.9rem;
+      pointer-events: auto;
+    }
+
+    /* Warm Hanok Glassmorphic Panel */
+    .glass-panel {
+      background: rgba(34, 22, 15, 0.86);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 224, 178, 0.26);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.48);
+    }
+
+    /* Primary Golden Button */
+    .btn-primary {
+      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+      border: 2px solid #fde68a;
+      box-shadow: 0 4px 0 #92400e, 0 8px 18px rgba(217, 119, 6, 0.35);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      filter: brightness(1.06);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #92400e;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* Confirm Stone Placement Button */
+    .btn-confirm {
+      background: linear-gradient(180deg, #34d399 0%, #059669 100%);
+      border: 2px solid #a7f3d0;
+      box-shadow: 0 4px 0 #065f46, 0 8px 20px rgba(16, 185, 129, 0.45);
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+      cursor: pointer;
+    }
+
+    .btn-confirm:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #065f46;
+    }
+
+    /* Active Player Turn Card Highlight */
+    .player-card-active {
+      border: 2px solid #fbbf24 !important;
+      background: rgba(251, 191, 36, 0.2) !important;
+      box-shadow: 0 0 16px rgba(251, 191, 36, 0.38);
+    }
+
+    /* Mini Stone Icons */
+    .stone-icon-black {
+      background: radial-gradient(circle at 32% 30%, #525252 0%, #171717 55%, #050505 100%);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    }
+
+    .stone-icon-white {
+      background: radial-gradient(circle at 32% 30%, #ffffff 0%, #f1ece1 60%, #cfc6b4 100%);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.55), inset 0 -1px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Floating Toast Animation */
+    @keyframes popIn {
+      0% { opacity: 0; transform: translate(-50%, -35%) scale(0.84); }
+      60% { opacity: 1; transform: translate(-50%, -52%) scale(1.04); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .toast-pop {
+      animation: popIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Floating Emoji Animation */
+    @keyframes floatEmoji {
+      0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
+      18% { opacity: 1; transform: translate(-50%, -26px) scale(1.22); }
+      80% { opacity: 1; transform: translate(-50%, -135px) scale(1.0); }
+      100% { opacity: 0; transform: translate(-50%, -175px) scale(0.85); }
+    }
+
+    .floating-emoji {
+      position: fixed;
+      z-index: 45;
+      pointer-events: none;
+      animation: floatEmoji 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Custom Thin Scrollbar */
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 999px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(251, 191, 36, 0.45);
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Three.js Canvas Container -->
+  <div id="canvas-container" aria-label="3D 20x20 오목판"></div>
+
+  <!-- Floating Emoji Reaction Layer -->
+  <div id="emoji-layer" class="fixed inset-0 z-40 pointer-events-none overflow-hidden"></div>
+
+  <!-- ========================================================================
+       UI OVERLAY LAYER
+       ======================================================================== -->
+  <div class="fixed inset-0 z-10 pointer-events-none">
+
+    <!-- TOP HUD BAR -->
+    <header class="absolute top-0 left-0 right-0 p-2 sm:p-3 flex flex-wrap items-start justify-between gap-2 pointer-events-none">
+
+      <!-- TOP-LEFT: Black vs White Player Cards & Online/Spectator Status -->
+      <div class="flex flex-col gap-1.5 pointer-events-auto">
+        <div class="glass-panel rounded-2xl p-1.5 sm:p-2 flex items-center gap-1.5 sm:gap-2">
+          <!-- Black Player Card -->
+          <div id="black-card" class="rounded-xl px-2.5 py-1.5 border border-white/15 bg-black/35 min-w-[98px] sm:min-w-[132px] transition">
+            <div class="flex items-center gap-1.5">
+              <span class="stone-icon-black w-4 h-4 rounded-full shrink-0"></span>
+              <span id="black-name-hud" class="text-[11px] sm:text-xs font-bold text-amber-200 truncate max-w-[66px] sm:max-w-[92px]">흑 (플레이어)</span>
+            </div>
+            <div class="flex items-center justify-between mt-1 text-[10px] sm:text-[11px] text-amber-100/75">
+              <span id="black-moves-hud" class="font-bold text-white">0수</span>
+              <span id="black-turn-badge" class="text-amber-300 font-bold">● 차례</span>
+            </div>
+          </div>
+
+          <div class="font-display text-xs text-amber-400/80 px-0.5">VS</div>
+
+          <!-- White Player Card -->
+          <div id="white-card" class="rounded-xl px-2.5 py-1.5 border border-white/15 bg-black/35 min-w-[98px] sm:min-w-[132px] transition">
+            <div class="flex items-center gap-1.5">
+              <span class="stone-icon-white w-4 h-4 rounded-full shrink-0"></span>
+              <span id="white-name-hud" class="text-[11px] sm:text-xs font-bold text-sky-200 truncate max-w-[66px] sm:max-w-[92px]">백 (AI)</span>
+            </div>
+            <div class="flex items-center justify-between mt-1 text-[10px] sm:text-[11px] text-amber-100/75">
+              <span id="white-moves-hud" class="font-bold text-white">0수</span>
+              <span id="white-turn-badge" class="text-sky-300 font-bold opacity-0">● 차례</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule Badge, Move Count & Online/Spectator Status Row -->
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <div id="rule-badge-hud" class="glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-amber-200 border border-amber-300/35">
+            📜 렌주룰 (20×20)
+          </div>
+          <div id="total-moves-hud" class="glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-white/85">
+            총 0수
+          </div>
+          <div id="net-status-pill" class="hidden glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-emerald-300 border border-emerald-400/40">
+            🟢 방 0000
+          </div>
+          <div id="spectator-count-pill" class="hidden glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-purple-200 border border-purple-400/40">
+            👀 0명
+          </div>
+          <div id="online-turn-banner" class="hidden glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-amber-200 border border-amber-300/50">
+            🎯 내 차례!
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP-RIGHT: Compact Utility Controls -->
+      <div class="glass-panel rounded-2xl p-1.5 sm:p-2 pointer-events-auto flex flex-wrap items-center justify-end gap-1 sm:gap-1.5 max-w-[100%]">
+        <button id="view-toggle-btn" type="button" title="3D 각도 / 2D 탑뷰 전환"
+          class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] sm:text-xs font-bold text-amber-100 transition cursor-pointer whitespace-nowrap">
+          시점: 3D
+        </button>
+
+        <div class="flex items-center rounded-xl bg-white/10 border border-white/15 overflow-hidden">
+          <button id="zoom-out-btn" type="button" title="축소"
+            class="px-2 py-1.5 hover:bg-white/20 text-xs font-black text-amber-100 transition cursor-pointer">−</button>
+          <span class="w-px h-3.5 bg-white/20"></span>
+          <button id="zoom-in-btn" type="button" title="확대"
+            class="px-2 py-1.5 hover:bg-white/20 text-xs font-black text-amber-100 transition cursor-pointer">+</button>
+        </div>
+
+        <button id="confirm-toggle-btn" type="button" title="터치 시 미리보기 후 착수 확인"
+          class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-300/40 text-[11px] sm:text-xs font-bold text-emerald-200 transition cursor-pointer whitespace-nowrap">
+          착수확인: ON
+        </button>
+
+        <button id="undo-btn" type="button" title="한 수 무르기 (1인/로컬 2인)"
+          class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] sm:text-xs font-bold text-amber-100 transition cursor-pointer whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed">
+          무르기
+        </button>
+
+        <button id="sound-btn" type="button" title="효과음 켜기/끄기"
+          class="p-1.5 sm:p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">
+          <svg id="sound-on-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
+          </svg>
+          <svg id="sound-off-icon" class="w-4 h-4 hidden text-rose-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6" />
+          </svg>
+        </button>
+
+        <button id="new-game-btn" type="button" title="새 게임 / 모드 설정"
+          class="px-2.5 py-1.5 rounded-xl bg-amber-500/25 hover:bg-amber-500/40 border border-amber-300/45 text-[11px] sm:text-xs font-bold text-amber-200 transition cursor-pointer whitespace-nowrap">
+          새 게임
+        </button>
+      </div>
+    </header>
+
+    <!-- BOTTOM-CENTER: Tap-to-Preview Confirm Bar (Hidden for Spectators) -->
+    <div id="confirm-bar" class="hidden fixed left-1/2 bottom-5 -translate-x-1/2 z-30 pointer-events-auto">
+      <div class="glass-panel rounded-2xl p-2 border-2 border-emerald-400/60 flex items-center gap-2">
+        <button id="confirm-place-btn" type="button"
+          class="btn-confirm px-4 sm:px-5 py-2.5 rounded-xl font-display text-base sm:text-lg text-stone-950 whitespace-nowrap">
+          여기에 착수 (K10)
+        </button>
+        <button id="cancel-preview-btn" type="button"
+          class="px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs sm:text-sm font-bold text-amber-100 cursor-pointer">
+          취소
+        </button>
+      </div>
+    </div>
+
+    <!-- BOTTOM-LEFT: Online Real-Time Chat Panel + 5 Emoji Bar + Controls Hint -->
+    <div class="fixed bottom-3 left-2.5 sm:left-3.5 z-20 pointer-events-none flex flex-col items-start gap-1.5 max-w-[calc(100vw-20px)] sm:max-w-[330px]">
+
+      <!-- Collapsible Online Real-Time Chat Panel -->
+      <div id="chat-wrapper" class="hidden pointer-events-auto w-[260px] sm:w-[305px] flex flex-col gap-1.5">
+        <div id="chat-box" class="glass-panel rounded-2xl border border-amber-300/30 overflow-hidden flex flex-col">
+          <div class="flex items-center justify-between px-3 py-1.5 bg-black/35 border-b border-white/10">
+            <span class="text-[11px] font-bold text-amber-200">💬 실시간 채팅</span>
+            <button id="chat-minimize-btn" type="button" class="text-[11px] text-amber-100/70 hover:text-white px-1 cursor-pointer">접기 ▾</button>
+          </div>
+          <div id="chat-messages" class="h-[118px] sm:h-[144px] overflow-y-auto custom-scroll px-2.5 py-2 space-y-1 text-[11px] sm:text-xs leading-snug">
+            <div class="text-amber-100/50 text-center py-4">응원 메시지나 대국 소감을 남겨보세요!</div>
+          </div>
+          <div class="flex items-center gap-1 p-1.5 bg-black/35 border-t border-white/10">
+            <input id="chat-input" type="text" maxlength="60" placeholder="메시지 입력..."
+              class="flex-1 min-w-0 px-2.5 py-1.5 rounded-xl bg-stone-950/85 border border-white/15 text-white text-xs focus:outline-none focus:border-amber-400" />
+            <button id="chat-send-btn" type="button"
+              class="px-2.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs shrink-0 cursor-pointer transition">
+              전송
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsed Chat Toggle Button with Unread Badge -->
+        <div class="flex items-center gap-1.5">
+          <button id="chat-toggle-btn" type="button"
+            class="hidden glass-panel rounded-full px-3 py-1.5 border border-amber-300/40 text-xs font-bold text-amber-200 hover:bg-white/15 flex items-center gap-1.5 cursor-pointer transition">
+            <span>💬 채팅</span>
+            <span id="chat-unread-badge" class="hidden px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black leading-none">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 5 Emoji Reactions Bar (👏 🔥 😂 😱 🎉) -->
+      <div id="emoji-bar" class="hidden pointer-events-auto flex items-center gap-1 sm:gap-1.5">
+        <button type="button" data-emoji="👏" class="emoji-btn glass-panel w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm sm:text-base flex items-center justify-center hover:scale-110 active:scale-90 transition cursor-pointer">👏</button>
+        <button type="button" data-emoji="🔥" class="emoji-btn glass-panel w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm sm:text-base flex items-center justify-center hover:scale-110 active:scale-90 transition cursor-pointer">🔥</button>
+        <button type="button" data-emoji="😂" class="emoji-btn glass-panel w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm sm:text-base flex items-center justify-center hover:scale-110 active:scale-90 transition cursor-pointer">😂</button>
+        <button type="button" data-emoji="😱" class="emoji-btn glass-panel w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm sm:text-base flex items-center justify-center hover:scale-110 active:scale-90 transition cursor-pointer">😱</button>
+        <button type="button" data-emoji="🎉" class="emoji-btn glass-panel w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm sm:text-base flex items-center justify-center hover:scale-110 active:scale-90 transition cursor-pointer">🎉</button>
+      </div>
+
+      <div class="hidden sm:block glass-panel rounded-xl px-3 py-1 text-[11px] text-amber-100/75">
+        휠/핀치로 확대 · 드래그로 화면 이동 · 교차점 클릭으로 착수
+      </div>
+    </div>
+
+    <!-- CENTER FLOATING TOAST (Non-blocking) -->
+    <div id="feedback-toast" class="hidden fixed left-1/2 top-[24%] -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
+      <div id="feedback-box" class="glass-panel rounded-2xl px-5 py-3 text-center border-2 max-w-[88vw]">
+        <div id="feedback-title" class="font-display text-xl sm:text-2xl tracking-wide">알림</div>
+        <div id="feedback-sub" class="text-xs sm:text-sm text-amber-100/90 mt-0.5 font-medium"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================================
+       MODAL 1: START / MODE & RULE SETTINGS MODAL
+       ======================================================================== -->
+  <div id="start-modal" class="modal-backdrop">
+    <div class="glass-panel rounded-3xl max-w-md w-full p-5 sm:p-6 border border-amber-300/35 space-y-4 max-h-[92vh] overflow-y-auto custom-scroll">
+      <div class="text-center space-y-1">
+        <div class="inline-block px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-300/40 text-amber-200 text-xs font-bold">
+          20×20 전통 바둑판 · Three.js 3D
+        </div>
+        <h1 class="font-display text-3xl sm:text-4xl text-amber-300 tracking-wide">3D 한국 전통 오목</h1>
+      </div>
+
+      <!-- Mode Toggle: AI vs Local 2P vs Online 2P & Spectate -->
+      <div class="grid grid-cols-3 gap-1.5">
+        <button id="mode-ai-btn" type="button"
+          class="py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border-2 border-amber-300 bg-amber-400 text-stone-950 shadow transition cursor-pointer">
+          🤖 1인용 AI
+        </button>
+        <button id="mode-local-btn" type="button"
+          class="py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border border-white/15 bg-white/10 text-amber-100 hover:bg-white/20 transition cursor-pointer">
+          ⚔️ 로컬 2인
+        </button>
+        <button id="mode-online-btn" type="button"
+          class="py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border border-white/15 bg-white/10 text-amber-100 hover:bg-white/20 transition cursor-pointer">
+          🌐 온라인
+        </button>
+      </div>
+
+      <!-- 1P AI Setup Box -->
+      <div id="ai-setup-box" class="bg-black/30 rounded-2xl p-3.5 border border-amber-400/25 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-amber-200">🤖 AI 난이도</span>
+          <div class="flex gap-1.5">
+            <button type="button" data-diff="easy" class="diff-btn px-3 py-1 rounded-xl text-xs font-bold bg-white/10 border border-white/15 text-amber-100 cursor-pointer transition">쉬움</button>
+            <button type="button" data-diff="normal" class="diff-btn px-3 py-1 rounded-xl text-xs font-bold bg-amber-400 text-stone-950 border border-amber-200 cursor-pointer transition">보통</button>
+            <button type="button" data-diff="hard" class="diff-btn px-3 py-1 rounded-xl text-xs font-bold bg-white/10 border border-white/15 text-amber-100 cursor-pointer transition">어려움</button>
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-2 border-t border-white/10">
+          <span class="text-xs font-bold text-amber-200">⚫ 내 돌 색상</span>
+          <div class="flex gap-1.5">
+            <button type="button" data-color="1" class="color-btn px-3 py-1 rounded-xl text-xs font-bold bg-amber-400 text-stone-950 border border-amber-200 cursor-pointer transition">⚫ 흑 (선공)</button>
+            <button type="button" data-color="2" class="color-btn px-3 py-1 rounded-xl text-xs font-bold bg-white/10 border border-white/15 text-amber-100 cursor-pointer transition">⚪ 백 (후공)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Local 2P Setup Box -->
+      <div id="local-setup-box" class="hidden bg-black/30 rounded-2xl p-3.5 border border-sky-400/30 space-y-2.5">
+        <div class="text-xs font-bold text-sky-300">⚔️ 같은 기기로 2인 대결</div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label for="local-black-input" class="block text-[11px] text-amber-200/80 mb-1">⚫ 흑 (선공)</label>
+            <input id="local-black-input" type="text" maxlength="10" value="흑 플레이어" placeholder="흑 이름"
+              class="w-full px-3 py-2 rounded-xl bg-stone-950/85 border border-amber-300/35 text-white font-bold text-sm focus:outline-none focus:border-amber-400" />
+          </div>
+          <div>
+            <label for="local-white-input" class="block text-[11px] text-sky-200/80 mb-1">⚪ 백 (후공)</label>
+            <input id="local-white-input" type="text" maxlength="10" value="백 플레이어" placeholder="백 이름"
+              class="w-full px-3 py-2 rounded-xl bg-stone-950/85 border border-sky-300/35 text-white font-bold text-sm focus:outline-none focus:border-sky-400" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Online 2P & Spectate Network Setup Box -->
+      <div id="online-setup-box" class="hidden bg-black/30 rounded-2xl p-3.5 border border-emerald-400/35 space-y-3">
+        <div>
+          <label for="online-nick-input" class="block text-[11px] font-bold text-emerald-300 mb-1">내 닉네임</label>
+          <input id="online-nick-input" type="text" maxlength="10" value="오목고수" placeholder="닉네임 입력"
+            class="w-full px-3 py-2 rounded-xl bg-stone-950/85 border border-emerald-300/35 text-white font-bold text-sm focus:outline-none focus:border-emerald-400" />
+        </div>
+
+        <!-- Online 3 Sub-tabs: Host / Join / Spectate -->
+        <div class="grid grid-cols-3 gap-1 bg-stone-950/70 p-1 rounded-xl border border-white/10">
+          <button id="online-tab-host" type="button"
+            class="py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-emerald-500 text-stone-950 transition cursor-pointer">
+            🏠 방 만들기
+          </button>
+          <button id="online-tab-join" type="button"
+            class="py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-amber-100/80 hover:bg-white/10 transition cursor-pointer">
+            🚪 방 참여
+          </button>
+          <button id="online-tab-spectate" type="button"
+            class="py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-amber-100/80 hover:bg-white/10 transition cursor-pointer">
+            👀 관전하기
+          </button>
+        </div>
+
+        <!-- Host Sub-panel -->
+        <div id="online-host-panel" class="space-y-2.5">
+          <div id="host-before-create">
+            <button id="create-room-btn" type="button"
+              class="btn-primary w-full py-2.5 rounded-xl font-display text-base text-stone-950">
+              방 생성하기 (흑 선공)
+            </button>
+          </div>
+
+          <div id="host-waiting-box" class="hidden bg-emerald-950/50 border border-emerald-400/40 rounded-2xl p-3 text-center space-y-2.5">
+            <div class="flex items-center justify-between text-[11px] font-bold px-1">
+              <span class="text-emerald-300">4자리 방 코드</span>
+              <span id="host-waiting-spec-count" class="text-purple-200">👀 관전자 0명</span>
+            </div>
+            <div id="room-code-display" class="font-display text-4xl tracking-[0.22em] text-amber-300 select-all">0000</div>
+
+            <div class="grid grid-cols-2 gap-1.5">
+              <button id="copy-link-btn" type="button"
+                class="py-2 px-2 rounded-xl bg-emerald-500/30 hover:bg-emerald-500/45 border border-emerald-300/45 text-[11px] sm:text-xs font-bold text-emerald-200 transition cursor-pointer">
+                🔗 대결 초대 링크
+              </button>
+              <button id="copy-spec-link-btn" type="button"
+                class="py-2 px-2 rounded-xl bg-purple-500/30 hover:bg-purple-500/45 border border-purple-300/45 text-[11px] sm:text-xs font-bold text-purple-200 transition cursor-pointer">
+                👀 관전 링크 복사
+              </button>
+            </div>
+            <button id="copy-code-btn" type="button"
+              class="w-full py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-bold text-white transition cursor-pointer">
+              📋 방 번호만 복사
+            </button>
+
+            <div id="host-status-text" class="text-[11px] text-amber-200 animate-pulse">⏳ 도전자 입장을 기다리는 중...</div>
+            <button id="cancel-room-btn" type="button"
+              class="w-full py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 border border-rose-400/30 text-[11px] font-bold text-rose-200 cursor-pointer">
+              방 생성 취소
+            </button>
+          </div>
+        </div>
+
+        <!-- Guest Sub-panel -->
+        <div id="online-join-panel" class="hidden space-y-2.5">
+          <div>
+            <label for="join-code-input" class="block text-[11px] text-amber-200/80 mb-1">4자리 방 번호 입력 (백 후공 참가)</label>
+            <input id="join-code-input" type="text" inputmode="numeric" maxlength="4" placeholder="예: 4829"
+              class="w-full px-3 py-2.5 rounded-xl bg-stone-950/90 border border-amber-300/40 text-amber-300 font-display text-2xl tracking-[0.28em] text-center focus:outline-none focus:border-emerald-400" />
+          </div>
+          <button id="join-room-btn" type="button"
+            class="btn-primary w-full py-2.5 rounded-xl font-display text-base text-stone-950">
+            대국 입장하기 (백 후공)
+          </button>
+          <div id="join-status-text" class="text-[11px] text-center text-amber-100/80 min-h-[16px]"></div>
+        </div>
+
+        <!-- Spectator Sub-panel -->
+        <div id="online-spectate-panel" class="hidden space-y-2.5">
+          <div>
+            <label for="spec-code-input" class="block text-[11px] text-purple-200/85 mb-1">4자리 방 번호 입력 (대국 중 중도 입장 가능)</label>
+            <input id="spec-code-input" type="text" inputmode="numeric" maxlength="4" placeholder="예: 4829"
+              class="w-full px-3 py-2.5 rounded-xl bg-stone-950/90 border border-purple-400/45 text-purple-200 font-display text-2xl tracking-[0.28em] text-center focus:outline-none focus:border-purple-400" />
+          </div>
+          <button id="spectate-room-btn" type="button"
+            class="w-full py-2.5 rounded-xl font-display text-base bg-gradient-to-b from-purple-400 to-purple-600 border-2 border-purple-200 text-stone-950 shadow-lg hover:brightness-105 active:translate-y-0.5 transition cursor-pointer">
+            👀 관전 입장하기
+          </button>
+          <div id="spec-status-text" class="text-[11px] text-center text-purple-200/85 min-h-[16px]"></div>
+        </div>
+      </div>
+
+      <!-- Omok Rule Selection (Free vs Renju) -->
+      <div id="rule-setup-box" class="bg-black/30 rounded-2xl p-3.5 border border-white/10 space-y-2">
+        <div class="text-xs font-bold text-amber-200">📜 오목 규칙 선택</div>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="rule-renju-btn" type="button"
+            class="py-2 px-2 rounded-xl text-xs font-bold bg-amber-400 text-stone-950 border border-amber-200 shadow transition cursor-pointer">
+            렌주룰 (흑 금수)
+          </button>
+          <button id="rule-free-btn" type="button"
+            class="py-2 px-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">
+            자유룰 (금수 없음)
+          </button>
+        </div>
+        <p id="rule-desc-text" class="text-[11px] text-amber-100/75 leading-snug">
+          렌주룰: 흑은 3·3, 4·4, 장목(6목 이상)이 금지되며 정확히 5목일 때 승리합니다. 백은 제한이 없습니다.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col gap-2 pt-0.5">
+        <button id="start-game-btn" type="button"
+          class="btn-primary w-full py-3.5 rounded-2xl font-display text-xl text-stone-950 tracking-wide">
+          대국 시작하기
+        </button>
+        <button id="cancel-settings-btn" type="button"
+          class="hidden w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-bold text-amber-100 transition cursor-pointer">
+          계속 보기/대국하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 2: WIN / DRAW RESULT MODAL
+       ======================================================================== -->
+  <div id="result-modal" class="modal-backdrop modal-hidden">
+    <div class="glass-panel rounded-3xl max-w-sm w-full p-6 border-2 border-amber-400/65 text-center space-y-4">
+      <div id="result-emoji" class="text-5xl">🏆</div>
+      <div>
+        <div id="result-badge" class="text-xs font-bold text-emerald-300 tracking-widest uppercase">GAME OVER</div>
+        <h2 id="result-title" class="font-display text-3xl text-amber-300 mt-1">흑 승리!</h2>
+        <p id="result-desc" class="text-xs sm:text-sm text-amber-100/85 mt-1">멋진 5목 완성입니다!</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 bg-black/35 rounded-2xl p-3 border border-white/10">
+        <div>
+          <div class="text-[11px] text-amber-200/75">총 착수</div>
+          <div id="result-moves" class="font-display text-xl text-white mt-0.5">0수</div>
+        </div>
+        <div class="border-l border-white/10">
+          <div class="text-[11px] text-emerald-200/75">적용 규칙</div>
+          <div id="result-rule" class="font-display text-xl text-emerald-300 mt-0.5">렌주룰</div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button id="rematch-btn" type="button"
+          class="btn-primary w-full py-3.5 rounded-2xl font-display text-lg text-stone-950">
+          다시 하기
+        </button>
+        <div id="rematch-status-text" class="hidden text-xs font-bold text-emerald-300 animate-pulse"></div>
+        <button id="result-menu-btn" type="button"
+          class="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-bold text-amber-100 transition cursor-pointer">
+          메뉴로 돌아가기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 3: ONLINE DISCONNECT MODAL
+       ======================================================================== -->
+  <div id="disconnect-modal" class="modal-backdrop modal-hidden">
+    <div class="glass-panel rounded-3xl max-w-sm w-full p-6 border-2 border-rose-500/60 text-center space-y-4">
+      <div class="text-4xl">📡</div>
+      <div>
+        <h2 class="font-display text-2xl text-rose-300">연결이 끊어졌습니다</h2>
+        <p id="disconnect-reason" class="text-xs sm:text-sm text-amber-100/85 mt-1">
+          상대방이 나갔거나 네트워크 연결이 불안정합니다.
+        </p>
+      </div>
+      <button id="disconnect-menu-btn" type="button"
+        class="btn-primary w-full py-3 rounded-2xl font-display text-lg text-stone-950">
+        메뉴로 돌아가기
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* --------------------------------------------------------------------------
+       * 1. CONSTANTS & CONFIGURATION
+       * -------------------------------------------------------------------------- */
+      const BOARD_N = 20;              // 20x20 intersections (0..19)
+      const CELL_SIZE = 1.0;           // 1 unit per intersection
+      const BOARD_WORLD_SIZE = 21.4;   // Physical wooden board width/depth
+      const BOARD_HALF_OFFSET = (BOARD_N - 1) / 2; // 9.5
+      const COL_LABELS = 'ABCDEFGHIJKLMNOPQRST'; // 20 columns A..T
+      const STAR_POINTS = [
+        [3, 3], [3, 16], [16, 3], [16, 16],
+        [7, 7], [7, 12], [12, 7], [12, 12]
+      ];
+      const DIRS = [
+        [0, 1],   // Horizontal
+        [1, 0],   // Vertical
+        [1, 1],   // Diagonal \
+        [1, -1]   // Diagonal /
+      ];
+
+      const MAX_SPECTATORS = 10;
+      const MAX_CHAT_MESSAGES = 50;
+      const PEER_PREFIX = 'omok-';
+      const PEER_CONFIG = {
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+          ]
+        }
+      };
+
+      function coordLabel(r, c) {
+        return `${COL_LABELS[c]}${BOARD_N - r}`;
+      }
+
+      function gridToWorld(r, c) {
+        return {
+          x: (c - BOARD_HALF_OFFSET) * CELL_SIZE,
+          z: (r - BOARD_HALF_OFFSET) * CELL_SIZE
+        };
+      }
+
+      function worldToGrid(x, z) {
+        const c = Math.round(x / CELL_SIZE + BOARD_HALF_OFFSET);
+        const r = Math.round(z / CELL_SIZE + BOARD_HALF_OFFSET);
+        if (r < 0 || r >= BOARD_N || c < 0 || c >= BOARD_N) return null;
+        return { r, c };
+      }
+
+      /* --------------------------------------------------------------------------
+       * 2. PROCEDURAL WEB AUDIO SOUND MANAGER (WITH CHAT PING)
+       * -------------------------------------------------------------------------- */
+      class SoundManager {
+        constructor() {
+          this.enabled = true;
+          this.ctx = null;
+        }
+        ensureContext() {
+          if (!this.enabled) return null;
+          try {
+            if (!this.ctx) {
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) this.ctx = new AudioCtx();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+              this.ctx.resume().catch(() => {});
+            }
+            return this.ctx;
+          } catch (e) {
+            return null;
+          }
+        }
+        // Crisp wooden stone "탁!" sound
+        playStoneClack(isBlack = true) {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const bufLen = Math.floor(ctx.sampleRate * 0.035);
+            const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < bufLen; i++) {
+              data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufLen, 2.2);
+            }
+            const noise = ctx.createBufferSource();
+            noise.buffer = buf;
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = isBlack ? 1350 : 1620;
+            filter.Q.value = 1.4;
+            const nGain = ctx.createGain();
+            nGain.gain.setValueAtTime(0.32, now);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+            noise.connect(filter);
+            filter.connect(nGain);
+            nGain.connect(ctx.destination);
+            noise.start(now);
+
+            const osc = ctx.createOscillator();
+            const oGain = ctx.createGain();
+            osc.type = 'triangle';
+            const baseFreq = isBlack ? 320 : 370;
+            osc.frequency.setValueAtTime(baseFreq + Math.random() * 25, now);
+            osc.frequency.exponentialRampToValueAtTime(115, now + 0.065);
+            oGain.gain.setValueAtTime(0.28, now);
+            oGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+            osc.connect(oGain);
+            oGain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.075);
+          } catch (e) {}
+        }
+        playPreviewTick() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(760, now);
+            osc.frequency.exponentialRampToValueAtTime(520, now + 0.03);
+            gain.gain.setValueAtTime(0.07, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.04);
+          } catch (e) {}
+        }
+        playForbidden() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(195, now);
+            osc.frequency.exponentialRampToValueAtTime(110, now + 0.18);
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 500;
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.22);
+          } catch (e) {}
+        }
+        playVictory() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'triangle';
+              const t = now + i * 0.09;
+              osc.frequency.setValueAtTime(freq, t);
+              gain.gain.setValueAtTime(0.001, t);
+              gain.gain.linearRampToValueAtTime(0.2, t + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(t);
+              osc.stop(t + 0.48);
+            });
+          } catch (e) {}
+        }
+        playEmoji() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(640, now);
+            osc.frequency.exponentialRampToValueAtTime(980, now + 0.09);
+            gain.gain.setValueAtTime(0.09, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.12);
+          } catch (e) {}
+        }
+        playChatPing() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.setValueAtTime(1174.66, now + 0.055);
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.15);
+          } catch (e) {}
+        }
+      }
+
+      const sound = new SoundManager();
+
+      /* --------------------------------------------------------------------------
+       * 3. OMOK RULES ENGINE (WIN DETECTION & RENJU FORBIDDEN MOVES)
+       * -------------------------------------------------------------------------- */
+      function inBounds(r, c) {
+        return r >= 0 && r < BOARD_N && c >= 0 && c < BOARD_N;
+      }
+
+      function getLineCells(board, r, c, dr, dc, color) {
+        const cells = [[r, c]];
+        let nr = r + dr, nc = c + dc;
+        while (inBounds(nr, nc) && board[nr][nc] === color) {
+          cells.push([nr, nc]);
+          nr += dr;
+          nc += dc;
+        }
+        nr = r - dr;
+        nc = c - dc;
+        while (inBounds(nr, nc) && board[nr][nc] === color) {
+          cells.unshift([nr, nc]);
+          nr -= dr;
+          nc -= dc;
+        }
+        return cells;
+      }
+
+      function checkWinnerAt(board, r, c, color, isRenju) {
+        for (const [dr, dc] of DIRS) {
+          const cells = getLineCells(board, r, c, dr, dc, color);
+          if (isRenju && color === 1) {
+            if (cells.length === 5) return cells;
+          } else {
+            if (cells.length >= 5) return cells.slice(0, 5);
+          }
+        }
+        return null;
+      }
+
+      function makesExactFiveInDir(board, r, c, dr, dc) {
+        let count = 1;
+        let nr = r + dr, nc = c + dc;
+        while (inBounds(nr, nc) && board[nr][nc] === 1) { count++; nr += dr; nc += dc; }
+        nr = r - dr; nc = c - dc;
+        while (inBounds(nr, nc) && board[nr][nc] === 1) { count++; nr -= dr; nc -= dc; }
+        return count === 5;
+      }
+
+      function countFoursInDir(board, r, c, dr, dc) {
+        const line = [];
+        for (let step = -4; step <= 4; step++) {
+          const nr = r + dr * step;
+          const nc = c + dc * step;
+          if (inBounds(nr, nc)) {
+            line.push({ step, r: nr, c: nc, val: board[nr][nc] });
+          }
+        }
+        const winEmpties = [];
+        for (const cell of line) {
+          if (cell.val !== 0) continue;
+          board[cell.r][cell.c] = 1;
+          const isFive = makesExactFiveInDir(board, cell.r, cell.c, dr, dc);
+          board[cell.r][cell.c] = 0;
+          if (isFive) winEmpties.push(cell);
+        }
+        if (winEmpties.length === 0) return 0;
+        if (winEmpties.length === 1) return 1;
+        if (winEmpties.length === 2 && Math.abs(winEmpties[1].step - winEmpties[0].step) === 5) {
+          return 1;
+        }
+        return 2;
+      }
+
+      function isOpenFourInDir(board, r, c, dr, dc) {
+        const cells = getLineCells(board, r, c, dr, dc, 1);
+        if (cells.length !== 4) return false;
+        const [r0, c0] = cells[0];
+        const [r3, c3] = cells[3];
+        const beforeR = r0 - dr, beforeC = c0 - dc;
+        const afterR = r3 + dr, afterC = c3 + dc;
+        if (!inBounds(beforeR, beforeC) || !inBounds(afterR, afterC)) return false;
+        if (board[beforeR][beforeC] !== 0 || board[afterR][afterC] !== 0) return false;
+        const before2R = beforeR - dr, before2C = beforeC - dc;
+        const after2R = afterR + dr, after2C = afterC + dc;
+        const beforeOverline = inBounds(before2R, before2C) && board[before2R][before2C] === 1;
+        const afterOverline = inBounds(after2R, after2C) && board[after2R][after2C] === 1;
+        return !beforeOverline && !afterOverline;
+      }
+
+      function isOpenThreeInDir(board, r, c, dr, dc, depth) {
+        for (let step = -3; step <= 3; step++) {
+          if (step === 0) continue;
+          const nr = r + dr * step;
+          const nc = c + dc * step;
+          if (!inBounds(nr, nc) || board[nr][nc] !== 0) continue;
+          board[nr][nc] = 1;
+          const createsOpenFour = isOpenFourInDir(board, nr, nc, dr, dc);
+          board[nr][nc] = 0;
+          if (createsOpenFour) {
+            if (depth > 0 && getRenjuForbiddenReason(board, nr, nc, depth - 1) !== null) {
+              continue;
+            }
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function getRenjuForbiddenReason(board, r, c, depth = 2) {
+        if (!inBounds(r, c) || board[r][c] !== 0) return null;
+        board[r][c] = 1;
+
+        for (const [dr, dc] of DIRS) {
+          if (getLineCells(board, r, c, dr, dc, 1).length === 5) {
+            board[r][c] = 0;
+            return null;
+          }
+        }
+        for (const [dr, dc] of DIRS) {
+          if (getLineCells(board, r, c, dr, dc, 1).length >= 6) {
+            board[r][c] = 0;
+            return '장목(6목 이상) 금수';
+          }
+        }
+        let fourCount = 0;
+        for (const [dr, dc] of DIRS) {
+          fourCount += countFoursInDir(board, r, c, dr, dc);
+          if (fourCount >= 2) {
+            board[r][c] = 0;
+            return '4·4 금수';
+          }
+        }
+        let openThreeCount = 0;
+        for (const [dr, dc] of DIRS) {
+          if (isOpenThreeInDir(board, r, c, dr, dc, depth)) {
+            openThreeCount++;
+            if (openThreeCount >= 2) {
+              board[r][c] = 0;
+              return '3·3 금수';
+            }
+          }
+        }
+
+        board[r][c] = 0;
+        return null;
+      }
+
+      /* --------------------------------------------------------------------------
+       * 4. FAST HEURISTIC OMOK AI (EASY / NORMAL / HARD)
+       * -------------------------------------------------------------------------- */
+      function evaluatePointForColor(board, r, c, color, isRenju) {
+        if (isRenju && color === 1 && getRenjuForbiddenReason(board, r, c, 1) !== null) {
+          return -1;
+        }
+        board[r][c] = color;
+
+        let totalScore = 0;
+        let openFours = 0;
+        let closedFours = 0;
+        let openThrees = 0;
+
+        for (const [dr, dc] of DIRS) {
+          let count = 1;
+          let openEnds = 0;
+
+          let nr = r + dr, nc = c + dc;
+          while (inBounds(nr, nc) && board[nr][nc] === color) { count++; nr += dr; nc += dc; }
+          if (inBounds(nr, nc) && board[nr][nc] === 0) {
+            openEnds++;
+            const jr = nr + dr, jc = nc + dc;
+            if (inBounds(jr, jc) && board[jr][jc] === color) {
+              let jumpCount = 0;
+              let tr = jr, tc = jc;
+              while (inBounds(tr, tc) && board[tr][tc] === color) { jumpCount++; tr += dr; tc += dc; }
+              if (count + jumpCount >= 4) closedFours++;
+              else if (count + jumpCount === 3 && inBounds(tr, tc) && board[tr][tc] === 0) totalScore += 2200;
+            }
+          }
+
+          nr = r - dr; nc = c - dc;
+          while (inBounds(nr, nc) && board[nr][nc] === color) { count++; nr -= dr; nc -= dc; }
+          if (inBounds(nr, nc) && board[nr][nc] === 0) {
+            openEnds++;
+            const jr = nr - dr, jc = nc - dc;
+            if (inBounds(jr, jc) && board[jr][jc] === color) {
+              let jumpCount = 0;
+              let tr = jr, tc = jc;
+              while (inBounds(tr, tc) && board[tr][tc] === color) { jumpCount++; tr -= dr; tc -= dc; }
+              if (count + jumpCount >= 4) closedFours++;
+              else if (count + jumpCount === 3 && inBounds(tr, tc) && board[tr][tc] === 0) totalScore += 2200;
+            }
+          }
+
+          if (count >= 5) {
+            if (!(isRenju && color === 1 && count > 5)) {
+              board[r][c] = 0;
+              return 2000000;
+            }
+          } else if (count === 4) {
+            if (openEnds === 2) { openFours++; totalScore += 140000; }
+            else if (openEnds === 1) { closedFours++; totalScore += 14000; }
+          } else if (count === 3) {
+            if (openEnds === 2) { openThrees++; totalScore += 11000; }
+            else if (openEnds === 1) { totalScore += 1400; }
+          } else if (count === 2) {
+            if (openEnds === 2) totalScore += 850;
+            else if (openEnds === 1) totalScore += 140;
+          } else if (count === 1 && openEnds === 2) {
+            totalScore += 30;
+          }
+        }
+
+        if (openFours >= 1) totalScore += 60000;
+        if (closedFours >= 2) totalScore += 95000;
+        if (closedFours >= 1 && openThrees >= 1) totalScore += 85000;
+        if (openThrees >= 2) totalScore += 45000;
+
+        board[r][c] = 0;
+        return totalScore;
+      }
+
+      function getCandidateMoves(board) {
+        const hasStone = [];
+        for (let r = 0; r < BOARD_N; r++) {
+          for (let c = 0; c < BOARD_N; c++) {
+            if (board[r][c] !== 0) hasStone.push([r, c]);
+          }
+        }
+        if (hasStone.length === 0) {
+          return [{ r: 9, c: 9 }, { r: 9, c: 10 }, { r: 10, c: 9 }, { r: 10, c: 10 }];
+        }
+        const visited = new Uint8Array(BOARD_N * BOARD_N);
+        const candidates = [];
+        const radius = 2;
+        for (const [sr, sc] of hasStone) {
+          for (let dr = -radius; dr <= radius; dr++) {
+            for (let dc = -radius; dc <= radius; dc++) {
+              const nr = sr + dr, nc = sc + dc;
+              if (!inBounds(nr, nc) || board[nr][nc] !== 0) continue;
+              const key = nr * BOARD_N + nc;
+              if (!visited[key]) {
+                visited[key] = 1;
+                candidates.push({ r: nr, c: nc });
+              }
+            }
+          }
+        }
+        return candidates;
+      }
+
+      function computeBestAIMove(board, aiColor, difficulty, isRenju) {
+        const oppColor = aiColor === 1 ? 2 : 1;
+        const candidates = getCandidateMoves(board);
+        const scored = [];
+        const defWeight = difficulty === 'hard' ? 1.12 : difficulty === 'normal' ? 1.02 : 0.78;
+
+        for (const cand of candidates) {
+          const atk = evaluatePointForColor(board, cand.r, cand.c, aiColor, isRenju);
+          if (atk < 0) continue;
+          const def = evaluatePointForColor(board, cand.r, cand.c, oppColor, isRenju);
+
+          if (atk >= 2000000) return cand;
+
+          const distCenter = Math.abs(cand.r - 9.5) + Math.abs(cand.c - 9.5);
+          const centerBonus = Math.max(0, 20 - distCenter) * 3;
+
+          let score = atk + Math.max(0, def) * defWeight + centerBonus;
+          if (def >= 2000000) score += 1200000;
+          else if (def >= 140000) score += 220000;
+
+          scored.push({ r: cand.r, c: cand.c, score, atk, def });
+        }
+
+        if (scored.length === 0) {
+          for (let r = 0; r < BOARD_N; r++) {
+            for (let c = 0; c < BOARD_N; c++) {
+              if (board[r][c] === 0 && !(isRenju && aiColor === 1 && getRenjuForbiddenReason(board, r, c, 1))) {
+                return { r, c };
+              }
+            }
+          }
+          return null;
+        }
+
+        scored.sort((a, b) => b.score - a.score);
+
+        if (difficulty === 'hard' && scored[0].score < 1000000) {
+          const topK = scored.slice(0, Math.min(8, scored.length));
+          let bestMove = topK[0];
+          let bestFinal = -Infinity;
+
+          for (const mv of topK) {
+            board[mv.r][mv.c] = aiColor;
+            let oppBest = 0;
+            const replyCands = getCandidateMoves(board);
+            for (const rc of replyCands) {
+              const rScore = evaluatePointForColor(board, rc.r, rc.c, oppColor, isRenju);
+              if (rScore > oppBest) oppBest = rScore;
+              if (oppBest >= 2000000) break;
+            }
+            board[mv.r][mv.c] = 0;
+
+            const finalScore = mv.score - oppBest * 0.45;
+            if (finalScore > bestFinal) {
+              bestFinal = finalScore;
+              bestMove = mv;
+            }
+          }
+          return { r: bestMove.r, c: bestMove.c };
+        }
+
+        if (difficulty === 'easy' && scored[0].score < 120000) {
+          const pool = scored.slice(0, Math.min(4, scored.length));
+          const pick = pool[Math.floor(Math.random() * pool.length)];
+          return { r: pick.r, c: pick.c };
+        }
+
+        const topEqual = scored.filter((s) => s.score >= scored[0].score * 0.97).slice(0, 3);
+        const chosen = topEqual[Math.floor(Math.random() * topEqual.length)];
+        return { r: chosen.r, c: chosen.c };
+      }
+
+      /* --------------------------------------------------------------------------
+       * 5. THREE.JS 3D GOBAN SCENE & CAMERA CONTROLLER
+       * -------------------------------------------------------------------------- */
+      let scene = null, camera = null, renderer = null, raycaster = null;
+      let boardHitPlane = null;
+      let stoneGroup = null, winRingGroup = null;
+      let ghostStoneMesh = null, lastMoveMarker = null, forbiddenXGroup = null;
+      let blackStoneMat = null, whiteStoneMat = null, stoneGeo = null;
+      let stoneMeshes = [];
+      let droppingStones = [];
+      let threeReady = false;
+
+      const camCtrl = {
+        viewMode: '3d', // '3d' | '2d'
+        zoom: 24.5,
+        targetZoom: 24.5,
+        minZoom: 11.5,
+        maxZoom: 34.0,
+        pitch: 0.30,
+        targetPitch: 0.30,
+        panX: 0,
+        panZ: 0.5,
+        targetPanX: 0,
+        targetPanZ: 0.5
+      };
+
+      function createGobanTexture() {
+        const size = 2048;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        // 1. Warm Kaya wood base gradient
+        const grad = ctx.createLinearGradient(0, 0, size, size);
+        grad.addColorStop(0, '#e3b267');
+        grad.addColorStop(0.5, '#d7a052');
+        grad.addColorStop(1, '#c98e40');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, size, size);
+
+        // 2. Subtle wood grain fibers
+        for (let i = 0; i < 240; i++) {
+          const y = (i / 240) * size;
+          ctx.strokeStyle = i % 3 === 0 ? 'rgba(130, 78, 28, 0.08)' : 'rgba(255, 232, 185, 0.07)';
+          ctx.lineWidth = 2 + (i % 5);
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          for (let x = 0; x <= size; x += 256) {
+            const wave = Math.sin(x * 0.002 + i * 0.35) * 8;
+            ctx.lineTo(x, y + wave);
+          }
+          ctx.stroke();
+        }
+
+        const idxToPx = (idx) => (((idx - BOARD_HALF_OFFSET) * CELL_SIZE) / BOARD_WORLD_SIZE + 0.5) * size;
+        const firstPx = idxToPx(0);
+        const lastPx = idxToPx(BOARD_N - 1);
+
+        // 3. Outer subtle decorative frame
+        ctx.strokeStyle = 'rgba(72, 42, 16, 0.32)';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(20, 20, size - 40, size - 40);
+
+        // 4. Crisp 20x20 Grid Lines
+        ctx.strokeStyle = '#241509';
+        for (let i = 0; i < BOARD_N; i++) {
+          const p = idxToPx(i);
+          ctx.lineWidth = (i === 0 || i === BOARD_N - 1) ? 4.2 : 2.5;
+          ctx.beginPath();
+          ctx.moveTo(p, firstPx);
+          ctx.lineTo(p, lastPx);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(firstPx, p);
+          ctx.lineTo(lastPx, p);
+          ctx.stroke();
+        }
+
+        // 5. Star Points (화점)
+        ctx.fillStyle = '#1f1208';
+        for (const [sr, sc] of STAR_POINTS) {
+          ctx.beginPath();
+          ctx.arc(idxToPx(sc), idxToPx(sr), 10.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 6. Coordinates (A-T top/bottom, 20-1 left/right)
+        ctx.fillStyle = '#4a2b12';
+        ctx.font = 'bold 30px "Noto Sans KR", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const marginOffset = firstPx * 0.50;
+        for (let i = 0; i < BOARD_N; i++) {
+          const p = idxToPx(i);
+          ctx.fillText(COL_LABELS[i], p, marginOffset);
+          ctx.fillText(COL_LABELS[i], p, size - marginOffset);
+          const rowNum = String(BOARD_N - i);
+          ctx.fillText(rowNum, marginOffset, p);
+          ctx.fillText(rowNum, size - marginOffset, p);
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.anisotropy = 8;
+        return tex;
+      }
+
+      function createFloorTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#5c3a21';
+        ctx.fillRect(0, 0, 512, 512);
+        const tones = ['#654025', '#58371f', '#6d472a', '#52321b'];
+        for (let i = 0; i < 8; i++) {
+          ctx.fillStyle = tones[i % tones.length];
+          ctx.fillRect(0, i * 64, 512, 62);
+          ctx.fillStyle = 'rgba(20, 10, 4, 0.55)';
+          ctx.fillRect(0, (i + 1) * 64 - 2, 512, 2);
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(6, 6);
+        return tex;
+      }
+
+      function computeInitialZoom() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const aspect = w / Math.max(1, h);
+        if (aspect < 0.72) return 35.5;
+        if (aspect < 1.0) return 30.5;
+        return 25.0;
+      }
+
+      function initThreeScene() {
+        try {
+          if (typeof THREE === 'undefined') return;
+          const container = document.getElementById('canvas-container');
+          if (!container) return;
+
+          const initZoom = computeInitialZoom();
+          camCtrl.zoom = initZoom;
+          camCtrl.targetZoom = initZoom;
+          camCtrl.maxZoom = Math.max(36, initZoom + 6);
+
+          scene = new THREE.Scene();
+          scene.background = new THREE.Color(0x23160f);
+          scene.fog = new THREE.FogExp2(0x23160f, 0.011);
+
+          const w = container.clientWidth || window.innerWidth;
+          const h = container.clientHeight || window.innerHeight;
+          camera = new THREE.PerspectiveCamera(42, w / h, 0.5, 140);
+
+          renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+          renderer.setSize(w, h);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+          renderer.shadowMap.enabled = true;
+          renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+          container.appendChild(renderer.domElement);
+
+          raycaster = new THREE.Raycaster();
+
+          // Warm Parlor Lighting
+          scene.add(new THREE.HemisphereLight(0xfff6e5, 0x3d2514, 0.85));
+          const keyLight = new THREE.DirectionalLight(0xffe9c7, 0.95);
+          keyLight.position.set(10, 26, 12);
+          keyLight.castShadow = true;
+          keyLight.shadow.mapSize.width = 2048;
+          keyLight.shadow.mapSize.height = 2048;
+          keyLight.shadow.camera.left = -14;
+          keyLight.shadow.camera.right = 14;
+          keyLight.shadow.camera.top = 14;
+          keyLight.shadow.camera.bottom = -14;
+          keyLight.shadow.bias = -0.0005;
+          scene.add(keyLight);
+
+          // Ondol Floor
+          const floor = new THREE.Mesh(
+            new THREE.PlaneGeometry(80, 80),
+            new THREE.MeshStandardMaterial({ map: createFloorTexture(), roughness: 0.75 })
+          );
+          floor.rotation.x = -Math.PI / 2;
+          floor.position.y = -1.25;
+          floor.receiveShadow = true;
+          scene.add(floor);
+
+          // 3D Wooden Goban
+          const boardHeight = 1.2;
+          const boardGeo = new THREE.BoxGeometry(BOARD_WORLD_SIZE, boardHeight, BOARD_WORLD_SIZE);
+          const sideMat = new THREE.MeshStandardMaterial({ color: 0x9c6632, roughness: 0.55 });
+          const topMat = new THREE.MeshStandardMaterial({ map: createGobanTexture(), roughness: 0.42, metalness: 0.04 });
+          const boardMesh = new THREE.Mesh(boardGeo, [sideMat, sideMat, topMat, sideMat, sideMat, sideMat]);
+          boardMesh.position.y = -boardHeight / 2;
+          boardMesh.receiveShadow = true;
+          boardMesh.castShadow = true;
+          scene.add(boardMesh);
+
+          // Invisible raycast plane at y = 0
+          boardHitPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(BOARD_WORLD_SIZE, BOARD_WORLD_SIZE),
+            new THREE.MeshBasicMaterial({ visible: false })
+          );
+          boardHitPlane.rotation.x = -Math.PI / 2;
+          boardHitPlane.position.y = 0.001;
+          scene.add(boardHitPlane);
+
+          // Shared Lenticular Stone Geometry & Materials
+          stoneGeo = new THREE.SphereGeometry(0.45, 28, 18);
+          stoneGeo.scale(1, 0.44, 1);
+
+          blackStoneMat = new THREE.MeshStandardMaterial({
+            color: 0x161618,
+            roughness: 0.22,
+            metalness: 0.12
+          });
+          whiteStoneMat = new THREE.MeshStandardMaterial({
+            color: 0xf7f3e8,
+            roughness: 0.18,
+            metalness: 0.05
+          });
+
+          stoneGroup = new THREE.Group();
+          scene.add(stoneGroup);
+
+          winRingGroup = new THREE.Group();
+          scene.add(winRingGroup);
+
+          // Ghost Preview Stone
+          ghostStoneMesh = new THREE.Mesh(
+            stoneGeo,
+            new THREE.MeshStandardMaterial({
+              color: 0x161618,
+              transparent: true,
+              opacity: 0.52,
+              roughness: 0.3
+            })
+          );
+          ghostStoneMesh.visible = false;
+          scene.add(ghostStoneMesh);
+
+          // Last Placed Stone Glowing Red Marker
+          const markerRing = new THREE.Mesh(
+            new THREE.RingGeometry(0.11, 0.19, 24),
+            new THREE.MeshBasicMaterial({ color: 0xff3b3b, side: THREE.DoubleSide })
+          );
+          markerRing.rotation.x = -Math.PI / 2;
+          const markerDot = new THREE.Mesh(
+            new THREE.CircleGeometry(0.07, 16),
+            new THREE.MeshBasicMaterial({ color: 0xff6b6b, side: THREE.DoubleSide })
+          );
+          markerDot.rotation.x = -Math.PI / 2;
+          markerDot.position.y = 0.002;
+          lastMoveMarker = new THREE.Group();
+          lastMoveMarker.add(markerRing);
+          lastMoveMarker.add(markerDot);
+          lastMoveMarker.visible = false;
+          scene.add(lastMoveMarker);
+
+          // Forbidden Move Red X Marker
+          forbiddenXGroup = new THREE.Group();
+          const barGeo = new THREE.BoxGeometry(0.68, 0.04, 0.12);
+          const barMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+          const bar1 = new THREE.Mesh(barGeo, barMat);
+          bar1.rotation.y = Math.PI / 4;
+          const bar2 = new THREE.Mesh(barGeo, barMat);
+          bar2.rotation.y = -Math.PI / 4;
+          forbiddenXGroup.add(bar1, bar2);
+          forbiddenXGroup.visible = false;
+          scene.add(forbiddenXGroup);
+
+          resetStoneMeshGrid();
+          bindCanvasInteractions(renderer.domElement);
+
+          window.addEventListener('resize', () => {
+            if (!renderer || !camera) return;
+            const nw = container.clientWidth || window.innerWidth;
+            const nh = container.clientHeight || window.innerHeight;
+            camera.aspect = nw / nh;
+            camera.updateProjectionMatrix();
+            renderer.setSize(nw, nh);
+          });
+
+          threeReady = true;
+        } catch (err) {
+          console.error('Three.js init error:', err);
+          threeReady = false;
+        }
+      }
+
+      function resetStoneMeshGrid() {
+        if (stoneGroup) {
+          while (stoneGroup.children.length > 0) {
+            stoneGroup.remove(stoneGroup.children[0]);
+          }
+        }
+        if (winRingGroup) {
+          while (winRingGroup.children.length > 0) {
+            winRingGroup.remove(winRingGroup.children[0]);
+          }
+        }
+        stoneMeshes = Array.from({ length: BOARD_N }, () => Array(BOARD_N).fill(null));
+        droppingStones = [];
+        if (lastMoveMarker) lastMoveMarker.visible = false;
+        if (ghostStoneMesh) ghostStoneMesh.visible = false;
+        if (forbiddenXGroup) forbiddenXGroup.visible = false;
+      }
+
+      function addStoneMesh(r, c, color, instant = false) {
+        if (!threeReady) return;
+        const { x, z } = gridToWorld(r, c);
+        const mesh = new THREE.Mesh(stoneGeo, color === 1 ? blackStoneMat : whiteStoneMat);
+        mesh.position.set(x, instant ? 0.198 : 1.15, z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        stoneGroup.add(mesh);
+        stoneMeshes[r][c] = mesh;
+
+        if (!instant) {
+          droppingStones.push({ mesh, y: 1.15, targetY: 0.198, vel: -5.5 });
+        }
+
+        lastMoveMarker.position.set(x, 0.405, z);
+        lastMoveMarker.visible = true;
+      }
+
+      function removeStoneMesh(r, c) {
+        if (!threeReady || !stoneMeshes[r][c]) return;
+        stoneGroup.remove(stoneMeshes[r][c]);
+        stoneMeshes[r][c] = null;
+      }
+
+      function highlightWinningStones(cells) {
+        if (!threeReady || !cells) return;
+        while (winRingGroup.children.length > 0) {
+          winRingGroup.remove(winRingGroup.children[0]);
+        }
+        const ringGeo = new THREE.TorusGeometry(0.49, 0.065, 12, 32);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+        for (const [r, c] of cells) {
+          const { x, z } = gridToWorld(r, c);
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.rotation.x = Math.PI / 2;
+          ring.position.set(x, 0.22, z);
+          winRingGroup.add(ring);
+        }
+      }
+
+      function showForbiddenX(r, c) {
+        if (!threeReady) return;
+        const { x, z } = gridToWorld(r, c);
+        forbiddenXGroup.position.set(x, 0.04, z);
+        forbiddenXGroup.visible = true;
+      }
+
+      function hideForbiddenX() {
+        if (forbiddenXGroup) forbiddenXGroup.visible = false;
+      }
+
+      function raycastBoard(clientX, clientY) {
+        if (!threeReady || !renderer) return null;
+        const rect = renderer.domElement.getBoundingClientRect();
+        const ndc = new THREE.Vector2(
+          ((clientX - rect.left) / rect.width) * 2 - 1,
+          -((clientY - rect.top) / rect.height) * 2 + 1
+        );
+        raycaster.setFromCamera(ndc, camera);
+        const hits = raycaster.intersectObject(boardHitPlane);
+        if (hits.length === 0) return null;
+        return worldToGrid(hits[0].point.x, hits[0].point.z);
+      }
+
+      function clampPan() {
+        const maxPan = Math.max(0, (camCtrl.maxZoom - camCtrl.targetZoom) * 0.42);
+        camCtrl.targetPanX = THREE.MathUtils.clamp(camCtrl.targetPanX, -maxPan, maxPan);
+        camCtrl.targetPanZ = THREE.MathUtils.clamp(camCtrl.targetPanZ, -maxPan, maxPan + 0.8);
+      }
+
+      function bindCanvasInteractions(dom) {
+        const activePointers = new Map();
+        let downX = 0, downY = 0, moved = false;
+        let lastPinchDist = 0;
+
+        dom.addEventListener('pointerdown', (e) => {
+          if (isAnyModalOpen()) return;
+          dom.setPointerCapture(e.pointerId);
+          activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+          if (activePointers.size === 1) {
+            downX = e.clientX;
+            downY = e.clientY;
+            moved = false;
+          } else if (activePointers.size === 2) {
+            moved = true;
+            const pts = Array.from(activePointers.values());
+            lastPinchDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+          }
+        });
+
+        dom.addEventListener('pointermove', (e) => {
+          if (isAnyModalOpen()) return;
+
+          // Hover ghost preview on desktop (only when player can act)
+          if (activePointers.size === 0 && e.pointerType === 'mouse') {
+            if (!game.confirmMode && canHumanAct()) {
+              const cell = raycastBoard(e.clientX, e.clientY);
+              updateHoverGhost(cell);
+            } else {
+              if (ghostStoneMesh) ghostStoneMesh.visible = false;
+              hideForbiddenX();
+            }
+            return;
+          }
+
+          if (!activePointers.has(e.pointerId)) return;
+          const prev = activePointers.get(e.pointerId);
+          const dx = e.clientX - prev.x;
+          const dy = e.clientY - prev.y;
+          activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+          if (activePointers.size === 1) {
+            if (Math.hypot(e.clientX - downX, e.clientY - downY) > 9) {
+              moved = true;
+            }
+            if (moved) {
+              const panScale = camCtrl.zoom * 0.00145;
+              camCtrl.targetPanX -= dx * panScale;
+              camCtrl.targetPanZ -= dy * panScale;
+              clampPan();
+            }
+          } else if (activePointers.size === 2) {
+            const pts = Array.from(activePointers.values());
+            const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+            if (lastPinchDist > 0) {
+              const delta = lastPinchDist - dist;
+              camCtrl.targetZoom = THREE.MathUtils.clamp(
+                camCtrl.targetZoom + delta * 0.045,
+                camCtrl.minZoom,
+                camCtrl.maxZoom
+              );
+              clampPan();
+            }
+            lastPinchDist = dist;
+          }
+        });
+
+        const endPointer = (e) => {
+          if (activePointers.has(e.pointerId)) {
+            const wasSingle = activePointers.size === 1;
+            activePointers.delete(e.pointerId);
+            if (wasSingle && !moved && !isAnyModalOpen() && canHumanAct()) {
+              const cell = raycastBoard(e.clientX, e.clientY);
+              if (cell) handleBoardTap(cell.r, cell.c);
+            }
+          }
+          if (activePointers.size < 2) lastPinchDist = 0;
+        };
+
+        dom.addEventListener('pointerup', endPointer);
+        dom.addEventListener('pointercancel', endPointer);
+
+        // Mouse wheel zoom (available to players & spectators alike)
+        dom.addEventListener('wheel', (e) => {
+          if (isAnyModalOpen()) return;
+          e.preventDefault();
+          camCtrl.targetZoom = THREE.MathUtils.clamp(
+            camCtrl.targetZoom + e.deltaY * 0.015,
+            camCtrl.minZoom,
+            camCtrl.maxZoom
+          );
+          clampPan();
+        }, { passive: false });
+      }
+
+      /* --------------------------------------------------------------------------
+       * 6. GAME STATE, HOST-HUB NETWORK STATE & CHAT STATE
+       * -------------------------------------------------------------------------- */
+      const game = {
+        mode: 'ai',          // 'ai' | 'local' | 'online'
+        rule: 'renju',       // 'renju' | 'free'
+        aiDifficulty: 'normal',
+        humanColor: 1,       // 1 = Black, 2 = White (for AI mode)
+        started: false,
+        over: false,
+        winnerColor: null,   // null | 0 (draw) | 1 (black) | 2 (white)
+        winCells: null,
+        turn: 1,             // 1 = Black, 2 = White
+        board: [],           // 20x20: 0 empty, 1 black, 2 white
+        history: [],         // [{ r, c, color }]
+        names: { 1: '플레이어', 2: 'AI (보통)' },
+        aiThinking: false,
+        confirmMode: window.innerWidth < 768,
+        previewCell: null
+      };
+
+      const net = {
+        peer: null,
+        conn: null,          // Guest or Spectator -> Host
+        guestConn: null,     // Host -> Guest
+        spectators: [],      // Host -> [{ conn, name }]
+        spectatorCount: 0,
+        role: null,          // 'host' | 'guest' | 'spectator' | null
+        myName: '오목고수',
+        roomCode: '',
+        connected: false,
+        matchActive: false,
+        myColor: 1,          // 1 = Black, 2 = White, 0 = Spectator
+        hostColor: 1,        // Tracks which color Host currently plays (swaps on rematch)
+        myRematch: false,
+        oppRematch: false
+      };
+
+      const chatState = {
+        messages: [],
+        isOpen: window.innerWidth >= 640,
+        unread: 0
+      };
+
+      function resetBoardState() {
+        game.board = Array.from({ length: BOARD_N }, () => Array(BOARD_N).fill(0));
+        game.history = [];
+        game.turn = 1;
+        game.over = false;
+        game.winnerColor = null;
+        game.winCells = null;
+        game.aiThinking = false;
+        game.previewCell = null;
+        resetStoneMeshGrid();
+        hideConfirmBar();
+      }
+
+      function isSpectator() {
+        return game.mode === 'online' && net.role === 'spectator';
+      }
+
+      function myRoleTag() {
+        if (net.role === 'host') return '방장';
+        if (net.role === 'guest') return '도전자';
+        return '관전';
+      }
+
+      function canHumanAct() {
+        if (!game.started || game.over || game.aiThinking) return false;
+        if (game.mode === 'ai') return game.turn === game.humanColor;
+        if (game.mode === 'online') {
+          if (isSpectator()) return false;
+          return net.connected && net.matchActive && game.turn === net.myColor;
+        }
+        return true; // local 2p
+      }
+
+      // Host hub broadcast to Guest + all Spectators (optionally excluding senderConn)
+      function broadcastFromHost(payload, excludeConn = null) {
+        if (net.role !== 'host') return;
+        if (net.guestConn && net.guestConn.open && net.guestConn !== excludeConn) {
+          try { net.guestConn.send(payload); } catch (e) {}
+        }
+        for (const sp of net.spectators) {
+          if (sp.conn && sp.conn.open && sp.conn !== excludeConn) {
+            try { sp.conn.send(payload); } catch (e) {}
+          }
+        }
+      }
+
+      function sendNet(payload) {
+        if (game.mode !== 'online') return;
+        if (net.role === 'host') {
+          broadcastFromHost(payload);
+        } else if (net.conn && net.conn.open) {
+          try { net.conn.send(payload); } catch (e) {}
+        }
+      }
+
+      function buildFullSyncState() {
+        return {
+          started: game.started,
+          matchActive: net.matchActive,
+          rule: game.rule,
+          turn: game.turn,
+          over: game.over,
+          winnerColor: game.winnerColor,
+          winCells: game.winCells,
+          names: { 1: game.names[1], 2: game.names[2] },
+          board: game.board.map((row) => row.slice()),
+          history: game.history.slice(),
+          spectatorCount: net.spectatorCount,
+          chatHistory: chatState.messages.slice(-20)
+        };
+      }
+
+      function cleanupNetwork() {
+        net.connected = false;
+        net.matchActive = false;
+        net.role = null;
+        net.roomCode = '';
+        net.spectatorCount = 0;
+        net.myRematch = false;
+        net.oppRematch = false;
+        if (net.conn) {
+          try { net.conn.close(); } catch (e) {}
+          net.conn = null;
+        }
+        if (net.guestConn) {
+          try { net.guestConn.close(); } catch (e) {}
+          net.guestConn = null;
+        }
+        for (const sp of net.spectators) {
+          try { if (sp.conn) sp.conn.close(); } catch (e) {}
+        }
+        net.spectators = [];
+        if (net.peer) {
+          try { net.peer.destroy(); } catch (e) {}
+          net.peer = null;
+        }
+      }
+
+      /* --------------------------------------------------------------------------
+       * 7. DOM HELPERS, CHAT UI, TOASTS & HUD UPDATES
+       * -------------------------------------------------------------------------- */
+      const elStartModal = document.getElementById('start-modal');
+      const elResultModal = document.getElementById('result-modal');
+      const elDisconnectModal = document.getElementById('disconnect-modal');
+      const elConfirmBar = document.getElementById('confirm-bar');
+      const elConfirmPlaceBtn = document.getElementById('confirm-place-btn');
+
+      function showModal(el) { if (el) el.classList.remove('modal-hidden'); }
+      function hideModal(el) { if (el) el.classList.add('modal-hidden'); }
+      function isAnyModalOpen() {
+        return (
+          !elStartModal.classList.contains('modal-hidden') ||
+          !elResultModal.classList.contains('modal-hidden') ||
+          !elDisconnectModal.classList.contains('modal-hidden')
+        );
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function showConfirmBar(r, c) {
+        elConfirmPlaceBtn.textContent = `여기에 착수 (${coordLabel(r, c)})`;
+        elConfirmBar.classList.remove('hidden');
+      }
+
+      function hideConfirmBar() {
+        elConfirmBar.classList.add('hidden');
+        game.previewCell = null;
+        if (ghostStoneMesh) ghostStoneMesh.visible = false;
+      }
+
+      let toastTimer = null;
+      function showToast(title, sub = '', style = 'info', duration = 1600) {
+        if (toastTimer) clearTimeout(toastTimer);
+        const toast = document.getElementById('feedback-toast');
+        const box = document.getElementById('feedback-box');
+        document.getElementById('feedback-title').textContent = title;
+        document.getElementById('feedback-sub').textContent = sub;
+        box.className = 'glass-panel rounded-2xl px-5 py-3 text-center border-2 max-w-[88vw] toast-pop ' +
+          (style === 'success' ? 'border-emerald-400/80 text-emerald-300' :
+           style === 'fail' ? 'border-rose-400/80 text-rose-300' :
+           'border-amber-300/80 text-amber-200');
+        toast.classList.remove('hidden');
+        toastTimer = setTimeout(() => toast.classList.add('hidden'), duration);
+      }
+
+      function copyToClipboard(text) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          return ok;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function spawnFloatingEmoji(emoji, senderName) {
+        const layer = document.getElementById('emoji-layer');
+        if (!layer) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'floating-emoji flex flex-col items-center';
+        wrap.style.left = `${26 + Math.random() * 48}%`;
+        wrap.style.bottom = '20%';
+        wrap.innerHTML = `
+          <div class="text-4xl sm:text-5xl drop-shadow-lg">${escapeHtml(emoji)}</div>
+          <div class="text-[10px] font-bold bg-black/70 text-amber-200 px-2 py-0.5 rounded-full mt-0.5 whitespace-nowrap">${escapeHtml(senderName)}</div>
+        `;
+        layer.appendChild(wrap);
+        sound.playEmoji();
+        setTimeout(() => { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 1850);
+      }
+
+      function resetChat() {
+        chatState.messages = [];
+        chatState.unread = 0;
+        renderChatMessages();
+        updateChatPanelVisibility();
+      }
+
+      function appendChatMessage(msg, playPing = true) {
+        chatState.messages.push(msg);
+        if (chatState.messages.length > MAX_CHAT_MESSAGES) {
+          chatState.messages.shift();
+        }
+        if (!chatState.isOpen && !msg.isSelf) {
+          chatState.unread += 1;
+        }
+        if (playPing && !msg.isSelf) {
+          sound.playChatPing();
+        }
+        renderChatMessages();
+        updateChatPanelVisibility();
+      }
+
+      function renderChatMessages() {
+        const container = document.getElementById('chat-messages');
+        if (!container) return;
+        if (chatState.messages.length === 0) {
+          container.innerHTML = '<div class="text-amber-100/50 text-center py-4">응원 메시지나 대국 소감을 남겨보세요!</div>';
+          return;
+        }
+        container.innerHTML = chatState.messages.map((m) => {
+          if (m.system) {
+            return `<div class="text-center text-[10px] text-emerald-300/90 bg-emerald-950/40 rounded-lg py-0.5 px-2">${escapeHtml(m.text)}</div>`;
+          }
+          const badgeClass = m.roleTag === '방장'
+            ? 'bg-amber-400/25 text-amber-300 border-amber-400/40'
+            : m.roleTag === '도전자'
+            ? 'bg-sky-400/25 text-sky-300 border-sky-400/40'
+            : 'bg-purple-400/25 text-purple-200 border-purple-400/40';
+          return `
+            <div class="break-words">
+              <span class="inline-block px-1 py-0.2 rounded border text-[9px] font-bold mr-1 ${badgeClass}">[${escapeHtml(m.roleTag)}]</span>
+              <span class="font-bold text-amber-100 mr-1">${escapeHtml(m.sender)}:</span>
+              <span class="text-white/95">${escapeHtml(m.text)}</span>
+            </div>
+          `;
+        }).join('');
+        container.scrollTop = container.scrollHeight;
+      }
+
+      function updateChatPanelVisibility() {
+        const showOnlineSocial = game.mode === 'online' && net.connected;
+        document.getElementById('chat-wrapper').classList.toggle('hidden', !showOnlineSocial);
+        document.getElementById('emoji-bar').classList.toggle('hidden', !showOnlineSocial);
+
+        const chatBox = document.getElementById('chat-box');
+        const toggleBtn = document.getElementById('chat-toggle-btn');
+        const unreadBadge = document.getElementById('chat-unread-badge');
+
+        if (chatState.isOpen) {
+          chatBox.classList.remove('hidden');
+          toggleBtn.classList.add('hidden');
+          chatState.unread = 0;
+        } else {
+          chatBox.classList.add('hidden');
+          toggleBtn.classList.remove('hidden');
+          if (chatState.unread > 0) {
+            unreadBadge.textContent = chatState.unread > 99 ? '99+' : String(chatState.unread);
+            unreadBadge.classList.remove('hidden');
+          } else {
+            unreadBadge.classList.add('hidden');
+          }
+        }
+      }
+
+      function updateHUD() {
+        const blackMoves = game.history.filter((m) => m.color === 1).length;
+        const whiteMoves = game.history.filter((m) => m.color === 2).length;
+
+        document.getElementById('black-name-hud').textContent = game.names[1];
+        document.getElementById('white-name-hud').textContent = game.names[2];
+        document.getElementById('black-moves-hud').textContent = `${blackMoves}수`;
+        document.getElementById('white-moves-hud').textContent = `${whiteMoves}수`;
+        document.getElementById('total-moves-hud').textContent = `총 ${game.history.length}수`;
+
+        const isBlackTurn = !game.over && game.turn === 1;
+        const isWhiteTurn = !game.over && game.turn === 2;
+        document.getElementById('black-card').classList.toggle('player-card-active', isBlackTurn);
+        document.getElementById('white-card').classList.toggle('player-card-active', isWhiteTurn);
+        document.getElementById('black-turn-badge').style.opacity = isBlackTurn ? '1' : '0';
+        document.getElementById('white-turn-badge').style.opacity = isWhiteTurn ? '1' : '0';
+
+        document.getElementById('rule-badge-hud').textContent =
+          game.rule === 'renju' ? '📜 렌주룰 (20×20)' : '📜 자유룰 (20×20)';
+
+        // Online & Spectator HUD badges
+        const netPill = document.getElementById('net-status-pill');
+        const specPill = document.getElementById('spectator-count-pill');
+        const turnBanner = document.getElementById('online-turn-banner');
+        if (game.mode === 'online') {
+          netPill.classList.remove('hidden');
+          specPill.classList.remove('hidden');
+          turnBanner.classList.remove('hidden');
+
+          netPill.textContent = net.connected ? `🟢 방 ${net.roomCode}` : '🔴 연결 끊김';
+          specPill.textContent = `👀 ${net.spectatorCount}명`;
+
+          const hostWaitSpec = document.getElementById('host-waiting-spec-count');
+          if (hostWaitSpec) hostWaitSpec.textContent = `👀 관전자 ${net.spectatorCount}명`;
+
+          if (isSpectator()) {
+            turnBanner.textContent = net.matchActive
+              ? (game.over ? '👀 관전 중 (대국 종료)' : `👀 관전 중 (현재 ${game.names[game.turn]}님 차례)`)
+              : '👀 관전 대기 중 (도전자 입장 대기)';
+            turnBanner.className = 'glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-purple-200 border border-purple-400/55 bg-purple-500/20';
+          } else if (game.turn === net.myColor) {
+            turnBanner.textContent = `🎯 내 차례 (${net.myColor === 1 ? '흑' : '백'})`;
+            turnBanner.className = 'glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-amber-200 border border-amber-300/60 bg-amber-500/20';
+          } else {
+            turnBanner.textContent = `⏳ ${game.names[game.turn]}님 생각 중...`;
+            turnBanner.className = 'glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-sky-200 border border-sky-400/40';
+          }
+        } else {
+          netPill.classList.add('hidden');
+          specPill.classList.add('hidden');
+          turnBanner.classList.add('hidden');
+        }
+
+        updateChatPanelVisibility();
+
+        // Hide confirm toggle & confirm bar completely for spectators
+        const confirmBtn = document.getElementById('confirm-toggle-btn');
+        if (isSpectator()) {
+          confirmBtn.classList.add('hidden');
+          hideConfirmBar();
+        } else {
+          confirmBtn.classList.remove('hidden');
+          confirmBtn.textContent = `착수확인: ${game.confirmMode ? 'ON' : 'OFF'}`;
+          confirmBtn.className = game.confirmMode
+            ? 'px-2 sm:px-2.5 py-1.5 rounded-xl bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-300/45 text-[11px] sm:text-xs font-bold text-emerald-200 transition cursor-pointer whitespace-nowrap'
+            : 'px-2 sm:px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] sm:text-xs font-bold text-amber-100/80 transition cursor-pointer whitespace-nowrap';
+        }
+
+        // Undo button availability
+        const undoBtn = document.getElementById('undo-btn');
+        if (game.mode === 'online') {
+          undoBtn.classList.add('hidden');
+        } else {
+          undoBtn.classList.remove('hidden');
+          const minNeeded = game.mode === 'ai' ? (game.humanColor === 2 ? 2 : 1) : 1;
+          undoBtn.disabled = !game.started || game.over || game.aiThinking || game.history.length < minNeeded;
+        }
+
+        document.getElementById('view-toggle-btn').textContent =
+          camCtrl.viewMode === '3d' ? '시점: 3D' : '시점: 2D';
+      }
+
+      /* --------------------------------------------------------------------------
+       * 8. GAMEPLAY ACTIONS (HOVER, PREVIEW, PLACE, AI TURN, UNDO)
+       * -------------------------------------------------------------------------- */
+      function updateHoverGhost(cell) {
+        if (!threeReady || !ghostStoneMesh) return;
+        if (!cell || game.board[cell.r][cell.c] !== 0) {
+          ghostStoneMesh.visible = false;
+          hideForbiddenX();
+          return;
+        }
+        if (game.rule === 'renju' && game.turn === 1 && getRenjuForbiddenReason(game.board, cell.r, cell.c) !== null) {
+          ghostStoneMesh.visible = false;
+          showForbiddenX(cell.r, cell.c);
+          return;
+        }
+        hideForbiddenX();
+        const { x, z } = gridToWorld(cell.r, cell.c);
+        ghostStoneMesh.material.color.setHex(game.turn === 1 ? 0x161618 : 0xf7f3e8);
+        ghostStoneMesh.position.set(x, 0.21, z);
+        ghostStoneMesh.visible = true;
+      }
+
+      function handleBoardTap(r, c) {
+        if (!canHumanAct()) return;
+        sound.ensureContext();
+        if (game.board[r][c] !== 0) return;
+
+        // Check Renju forbidden move for Black
+        if (game.rule === 'renju' && game.turn === 1) {
+          const reason = getRenjuForbiddenReason(game.board, r, c);
+          if (reason) {
+            sound.playForbidden();
+            showForbiddenX(r, c);
+            showToast('금수 자리입니다!', `흑 ${reason} (${coordLabel(r, c)})`, 'fail', 1600);
+            setTimeout(hideForbiddenX, 1400);
+            return;
+          }
+        }
+        hideForbiddenX();
+
+        if (game.confirmMode) {
+          if (game.previewCell && game.previewCell.r === r && game.previewCell.c === c) {
+            hideConfirmBar();
+            placeStone(r, c, game.turn, false);
+            return;
+          }
+          game.previewCell = { r, c };
+          if (threeReady && ghostStoneMesh) {
+            const { x, z } = gridToWorld(r, c);
+            ghostStoneMesh.material.color.setHex(game.turn === 1 ? 0x161618 : 0xf7f3e8);
+            ghostStoneMesh.position.set(x, 0.21, z);
+            ghostStoneMesh.visible = true;
+          }
+          sound.playPreviewTick();
+          showConfirmBar(r, c);
+        } else {
+          placeStone(r, c, game.turn, false);
+        }
+      }
+
+      function placeStone(r, c, color, isRemote = false) {
+        if (game.over || game.board[r][c] !== 0) return;
+
+        game.board[r][c] = color;
+        game.history.push({ r, c, color });
+        hideConfirmBar();
+        hideForbiddenX();
+
+        addStoneMesh(r, c, color, false);
+        sound.playStoneClack(color === 1);
+
+        if (!isRemote && game.mode === 'online' && color === net.myColor) {
+          sendNet({ type: 'move', r, c, color });
+        }
+
+        // Check win condition
+        const winCells = checkWinnerAt(game.board, r, c, color, game.rule === 'renju');
+        if (winCells) {
+          game.over = true;
+          game.winnerColor = color;
+          game.winCells = winCells;
+          highlightWinningStones(winCells);
+          sound.playVictory();
+          updateHUD();
+          setTimeout(() => showResultModal(color), 550);
+          return;
+        }
+
+        // Check draw (all 400 cells filled)
+        if (game.history.length >= BOARD_N * BOARD_N) {
+          game.over = true;
+          game.winnerColor = 0;
+          updateHUD();
+          setTimeout(() => showResultModal(0), 400);
+          return;
+        }
+
+        // Switch turn
+        game.turn = color === 1 ? 2 : 1;
+        updateHUD();
+
+        // Trigger AI turn if applicable
+        if (game.mode === 'ai' && game.turn !== game.humanColor && !game.over) {
+          triggerAITurn();
+        }
+      }
+
+      function triggerAITurn() {
+        game.aiThinking = true;
+        updateHUD();
+        const aiColor = game.humanColor === 1 ? 2 : 1;
+        setTimeout(() => {
+          if (game.over || game.mode !== 'ai') {
+            game.aiThinking = false;
+            return;
+          }
+          const mv = computeBestAIMove(game.board, aiColor, game.aiDifficulty, game.rule === 'renju');
+          game.aiThinking = false;
+          if (mv) placeStone(mv.r, mv.c, aiColor, false);
+        }, 280);
+      }
+
+      function undoLastMove() {
+        if (game.mode === 'online' || game.over || game.aiThinking || game.history.length === 0) return;
+        hideConfirmBar();
+        hideForbiddenX();
+
+        const steps = (game.mode === 'ai' && game.history.length >= 2) ? 2 : 1;
+        for (let i = 0; i < steps; i++) {
+          const last = game.history.pop();
+          if (!last) break;
+          game.board[last.r][last.c] = 0;
+          removeStoneMesh(last.r, last.c);
+          game.turn = last.color;
+        }
+
+        if (game.history.length > 0 && threeReady) {
+          const prev = game.history[game.history.length - 1];
+          const { x, z } = gridToWorld(prev.r, prev.c);
+          lastMoveMarker.position.set(x, 0.405, z);
+          lastMoveMarker.visible = true;
+        } else if (lastMoveMarker) {
+          lastMoveMarker.visible = false;
+        }
+
+        sound.playPreviewTick();
+        updateHUD();
+        showToast('무르기 완료', `${game.names[game.turn]}님 차례입니다`, 'info', 1000);
+      }
+
+      function showResultModal(winnerColor) {
+        const rematchBtn = document.getElementById('rematch-btn');
+        const statusEl = document.getElementById('rematch-status-text');
+        statusEl.classList.add('hidden');
+        document.getElementById('result-moves').textContent = `${game.history.length}수`;
+        document.getElementById('result-rule').textContent = game.rule === 'renju' ? '렌주룰' : '자유룰';
+
+        if (winnerColor === 0) {
+          document.getElementById('result-emoji').textContent = '🤝';
+          document.getElementById('result-badge').textContent = 'DRAW';
+          document.getElementById('result-title').textContent = '무승부!';
+          document.getElementById('result-desc').textContent = '20×20 바둑판이 모두 채워졌습니다.';
+        } else {
+          const colorText = winnerColor === 1 ? '흑' : '백';
+          document.getElementById('result-emoji').textContent = '🏆';
+          document.getElementById('result-badge').textContent = '5목 완성!';
+          document.getElementById('result-title').textContent = `${game.names[winnerColor]} 승리!`;
+          document.getElementById('result-desc').textContent = `${colorText}돌이 5목을 완성하여 대국에서 승리했습니다.`;
+        }
+
+        if (isSpectator()) {
+          rematchBtn.classList.add('hidden');
+          statusEl.textContent = '👀 두 대국자가 재대결을 시작하면 자동으로 새 대국이 열립니다...';
+          statusEl.classList.remove('hidden');
+        } else {
+          rematchBtn.classList.remove('hidden');
+          rematchBtn.textContent = game.mode === 'online' ? '🔄 다시 대결하기 (흑·백 교대)' : '다시 하기';
+        }
+        showModal(elResultModal);
+      }
+
+      /* --------------------------------------------------------------------------
+       * 9. GAME START & PEERJS HOST-HUB MULTIPLAYER + SPECTATOR
+       * -------------------------------------------------------------------------- */
+      function startLocalOrAIGame() {
+        cleanupNetwork();
+        resetChat();
+        resetBoardState();
+        game.started = true;
+
+        if (game.mode === 'ai') {
+          const diffLabel = game.aiDifficulty === 'easy' ? '쉬움' : game.aiDifficulty === 'hard' ? '어려움' : '보통';
+          game.names[game.humanColor] = '플레이어';
+          game.names[game.humanColor === 1 ? 2 : 1] = `AI (${diffLabel})`;
+        } else {
+          const bName = (document.getElementById('local-black-input').value || '').trim() || '흑 플레이어';
+          const wName = (document.getElementById('local-white-input').value || '').trim() || '백 플레이어';
+          game.names[1] = bName;
+          game.names[2] = wName;
+        }
+
+        hideModal(elStartModal);
+        hideModal(elResultModal);
+        hideModal(elDisconnectModal);
+        updateHUD();
+
+        showToast(
+          '대국 시작!',
+          `${game.names[1]}(흑) 선공 · ${game.rule === 'renju' ? '렌주룰' : '자유룰'}`,
+          'info',
+          1500
+        );
+
+        if (game.mode === 'ai' && game.humanColor === 2) {
+          triggerAITurn();
+        }
+      }
+
+      function startOnlineMatch(config) {
+        game.mode = 'online';
+        game.rule = config.rule;
+        game.names[1] = config.blackName;
+        game.names[2] = config.whiteName;
+        net.hostColor = config.hostColor;
+        net.matchActive = true;
+        if (typeof config.spectatorCount === 'number') {
+          net.spectatorCount = config.spectatorCount;
+        }
+        if (net.role === 'host') {
+          net.myColor = config.hostColor;
+        } else if (net.role === 'guest') {
+          net.myColor = config.hostColor === 1 ? 2 : 1;
+        } else {
+          net.myColor = 0; // spectator
+        }
+        net.myRematch = false;
+        net.oppRematch = false;
+        game.started = true;
+
+        resetBoardState();
+        hideModal(elStartModal);
+        hideModal(elResultModal);
+        hideModal(elDisconnectModal);
+        document.getElementById('rematch-status-text').classList.add('hidden');
+        updateHUD();
+
+        const subMsg = isSpectator()
+          ? `👀 관전 중 · ${game.names[1]}(흑) 선공으로 시작합니다!`
+          : net.myColor === 1
+          ? '🎯 내 차례 (흑 선공)입니다!'
+          : `⏳ ${game.names[1]}님(흑) 선공입니다!`;
+        showToast(`${game.names[1]} vs ${game.names[2]}`, subMsg, 'info', 1800);
+      }
+
+      function applySpectatorMidGameSync(st) {
+        game.mode = 'online';
+        game.started = Boolean(st.started);
+        net.matchActive = Boolean(st.matchActive);
+        game.rule = st.rule || 'renju';
+        game.turn = st.turn || 1;
+        game.over = Boolean(st.over);
+        game.winnerColor = st.winnerColor;
+        game.winCells = st.winCells || null;
+        game.names = { 1: (st.names && st.names[1]) || '흑', 2: (st.names && st.names[2]) || '백' };
+        net.spectatorCount = st.spectatorCount || 1;
+
+        resetStoneMeshGrid();
+        game.board = Array.from({ length: BOARD_N }, (_, r) =>
+          st.board && st.board[r] ? st.board[r].slice() : Array(BOARD_N).fill(0)
+        );
+        game.history = Array.isArray(st.history) ? st.history.slice() : [];
+
+        // Rebuild all placed stones instantaneously in 3D
+        if (threeReady) {
+          for (let r = 0; r < BOARD_N; r++) {
+            for (let c = 0; c < BOARD_N; c++) {
+              if (game.board[r][c] !== 0) {
+                addStoneMesh(r, c, game.board[r][c], true);
+              }
+            }
+          }
+          if (game.history.length > 0) {
+            const last = game.history[game.history.length - 1];
+            const { x, z } = gridToWorld(last.r, last.c);
+            lastMoveMarker.position.set(x, 0.405, z);
+            lastMoveMarker.visible = true;
+          } else {
+            lastMoveMarker.visible = false;
+          }
+          if (game.winCells) {
+            highlightWinningStones(game.winCells);
+          }
+        }
+
+        if (Array.isArray(st.chatHistory)) {
+          chatState.messages = st.chatHistory.slice(-MAX_CHAT_MESSAGES);
+          renderChatMessages();
+        }
+
+        hideModal(elStartModal);
+        hideModal(elResultModal);
+        hideModal(elDisconnectModal);
+        updateHUD();
+
+        showToast(
+          '👀 관전 입장 완료!',
+          net.matchActive
+            ? (game.over ? '방금 대국이 종료되었습니다' : `${game.names[game.turn]}님 차례를 실시간으로 관전합니다`)
+            : '도전자 입장을 기다리고 있습니다',
+          'info',
+          1800
+        );
+
+        if (game.over && game.winnerColor !== null) {
+          setTimeout(() => showResultModal(game.winnerColor), 600);
+        }
+      }
+
+      function hostSystemChat(text) {
+        const sysMsg = { system: true, text };
+        appendChatMessage(sysMsg, false);
+        broadcastFromHost({ type: 'chat', system: true, text });
+      }
+
+      function handleHostIncomingConnection(conn) {
+        conn.on('data', (data) => {
+          if (!data || typeof data !== 'object') return;
+
+          if (data.type === 'hello') {
+            const joinName = (data.name || '').trim() || (data.role === 'spectator' ? '관전자' : '도전자');
+            if (data.role === 'guest') {
+              if (net.guestConn && net.guestConn.open) {
+                conn.send({ type: 'room_full', reason: '이미 도전자 자리가 찼습니다. 관전하기로 입장해 보세요!' });
+                setTimeout(() => { try { conn.close(); } catch (e) {} }, 250);
+                return;
+              }
+              net.guestConn = conn;
+              const matchConfig = {
+                type: 'start_match',
+                rule: game.rule,
+                hostColor: 1,
+                blackName: net.myName,
+                whiteName: joinName,
+                spectatorCount: net.spectatorCount
+              };
+              broadcastFromHost(matchConfig);
+              startOnlineMatch(matchConfig);
+              hostSystemChat(`[도전자] ${joinName}님이 대국에 입장했습니다!`);
+            } else if (data.role === 'spectator') {
+              if (net.spectators.length >= MAX_SPECTATORS) {
+                conn.send({ type: 'room_full', reason: `관전 정원(${MAX_SPECTATORS}명)이 가득 찼습니다.` });
+                setTimeout(() => { try { conn.close(); } catch (e) {} }, 250);
+                return;
+              }
+              net.spectators.push({ conn, name: joinName });
+              net.spectatorCount = net.spectators.length;
+              conn.send({ type: 'spectator_sync', state: buildFullSyncState() });
+              broadcastFromHost({ type: 'spectator_count', count: net.spectatorCount });
+              updateHUD();
+              hostSystemChat(`[관전] ${joinName}님이 관전을 시작했습니다. (👀 ${net.spectatorCount}명)`);
+            }
+            return;
+          }
+
+          handleNetPacket(data, conn);
+        });
+
+        const onPeerDisconnect = () => {
+          if (conn === net.guestConn) {
+            net.guestConn = null;
+            if (net.matchActive) {
+              net.matchActive = false;
+              broadcastFromHost({ type: 'guest_left', reason: '도전자가 대국에서 나갔습니다.' });
+              updateHUD();
+              document.getElementById('disconnect-reason').textContent = '도전자가 대국에서 나갔습니다.';
+              showModal(elDisconnectModal);
+            }
+          } else {
+            const idx = net.spectators.findIndex((s) => s.conn === conn);
+            if (idx >= 0) {
+              const leftName = net.spectators[idx].name;
+              net.spectators.splice(idx, 1);
+              net.spectatorCount = net.spectators.length;
+              broadcastFromHost({ type: 'spectator_count', count: net.spectatorCount });
+              updateHUD();
+              hostSystemChat(`[관전] ${leftName}님이 퇴장했습니다. (👀 ${net.spectatorCount}명)`);
+            }
+          }
+        };
+
+        conn.on('close', onPeerDisconnect);
+        conn.on('error', onPeerDisconnect);
+      }
+
+      function setupClientConnection(conn, role) {
+        net.conn = conn;
+
+        conn.on('open', () => {
+          net.connected = true;
+          conn.send({ type: 'hello', role, name: net.myName });
+          if (role === 'guest') {
+            document.getElementById('join-status-text').textContent = '✅ 연결 완료! 대국을 시작합니다...';
+          } else {
+            document.getElementById('spec-status-text').textContent = '✅ 방에 연결되었습니다! 바둑판을 동기화합니다...';
+          }
+        });
+
+        conn.on('data', (data) => {
+          if (!data || typeof data !== 'object') return;
+          handleNetPacket(data, conn);
+        });
+
+        const handleDrop = (reason) => {
+          if (!net.connected) return;
+          net.connected = false;
+          net.matchActive = false;
+          updateHUD();
+          if (game.mode === 'online') {
+            document.getElementById('disconnect-reason').textContent = reason || '방장과의 연결이 끊어졌습니다.';
+            showModal(elDisconnectModal);
+          }
+        };
+
+        conn.on('close', () => handleDrop('방장이 방을 닫았거나 연결이 끊어졌습니다.'));
+        conn.on('error', () => handleDrop('네트워크 연결 오류가 발생했습니다.'));
+      }
+
+      function handleNetPacket(data, senderConn = null) {
+        switch (data.type) {
+          case 'room_full': {
+            const msg = data.reason || '방에 입장할 수 없습니다.';
+            if (net.role === 'guest') document.getElementById('join-status-text').textContent = `❌ ${msg}`;
+            if (net.role === 'spectator') document.getElementById('spec-status-text').textContent = `❌ ${msg}`;
+            cleanupNetwork();
+            break;
+          }
+          case 'start_match': {
+            startOnlineMatch(data);
+            break;
+          }
+          case 'spectator_sync': {
+            applySpectatorMidGameSync(data.state);
+            break;
+          }
+          case 'spectator_count': {
+            net.spectatorCount = data.count || 0;
+            updateHUD();
+            break;
+          }
+          case 'guest_left': {
+            net.matchActive = false;
+            updateHUD();
+            document.getElementById('disconnect-reason').textContent = data.reason || '도전자가 대국에서 나갔습니다.';
+            showModal(elDisconnectModal);
+            break;
+          }
+          case 'move': {
+            if (data.color !== game.turn) return;
+            // If host receives guest's move, relay to all spectators
+            if (net.role === 'host' && senderConn === net.guestConn) {
+              broadcastFromHost(data, senderConn);
+            }
+            placeStone(data.r, data.c, data.color, true);
+            break;
+          }
+          case 'emoji': {
+            if (net.role === 'host' && senderConn) {
+              broadcastFromHost(data, senderConn);
+            }
+            spawnFloatingEmoji(data.emoji, data.sender || '참가자');
+            break;
+          }
+          case 'chat': {
+            if (net.role === 'host' && senderConn) {
+              broadcastFromHost(data, senderConn);
+            }
+            appendChatMessage({
+              system: Boolean(data.system),
+              roleTag: data.roleTag || '관전',
+              sender: data.sender || '익명',
+              text: data.text || '',
+              isSelf: false
+            }, !data.system);
+            break;
+          }
+          case 'rematch_request': {
+            if (isSpectator()) return;
+            net.oppRematch = true;
+            const statusEl = document.getElementById('rematch-status-text');
+            if (net.myRematch) {
+              if (net.role === 'host') triggerOnlineRematch();
+            } else {
+              statusEl.textContent = '🔥 상대방이 다시 대결하기를 요청했습니다!';
+              statusEl.classList.remove('hidden');
+            }
+            break;
+          }
+        }
+      }
+
+      function triggerOnlineRematch() {
+        const nextHostColor = net.hostColor === 1 ? 2 : 1;
+        const prevBlack = game.names[1];
+        const prevWhite = game.names[2];
+        const matchConfig = {
+          type: 'start_match',
+          rule: game.rule,
+          hostColor: nextHostColor,
+          blackName: prevWhite,
+          whiteName: prevBlack,
+          spectatorCount: net.spectatorCount
+        };
+        broadcastFromHost(matchConfig);
+        startOnlineMatch(matchConfig);
+        hostSystemChat(`🔄 흑·백 교대 재대결 시작! (흑: ${matchConfig.blackName} / 백: ${matchConfig.whiteName})`);
+      }
+
+      function createOnlineRoom() {
+        if (typeof Peer === 'undefined') {
+          showToast('네트워크 모듈 로드 실패', 'PeerJS CDN에 연결할 수 없습니다. AI/로컬 모드를 이용해 주세요.', 'fail', 2400);
+          return;
+        }
+        cleanupNetwork();
+        resetChat();
+        const code = String(Math.floor(1000 + Math.random() * 9000));
+        net.role = 'host';
+        net.roomCode = code;
+        net.myName = (document.getElementById('online-nick-input').value || '').trim() || '방장';
+        net.hostColor = 1;
+        net.myColor = 1;
+
+        game.names[1] = net.myName;
+        game.names[2] = '대기 중...';
+
+        document.getElementById('host-before-create').classList.add('hidden');
+        document.getElementById('rule-setup-box').classList.add('hidden');
+        document.getElementById('host-waiting-box').classList.remove('hidden');
+        document.getElementById('room-code-display').textContent = code;
+        document.getElementById('host-status-text').textContent = '🔌 서버에 방 등록 중...';
+
+        try {
+          const peer = new Peer(PEER_PREFIX + code, PEER_CONFIG);
+          net.peer = peer;
+          peer.on('open', () => {
+            net.connected = true;
+            document.getElementById('host-status-text').textContent = '⏳ 도전자 입장을 기다리는 중... (관전자도 지금 입장 가능)';
+            updateHUD();
+          });
+          peer.on('connection', (conn) => {
+            handleHostIncomingConnection(conn);
+          });
+          peer.on('error', (err) => {
+            document.getElementById('host-status-text').textContent =
+              err && err.type === 'unavailable-id'
+                ? '❌ 방 코드가 중복되었습니다. 취소 후 다시 생성해 주세요.'
+                : '❌ 네트워크 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+          });
+        } catch (err) {
+          document.getElementById('host-status-text').textContent = '❌ 방 생성 중 오류가 발생했습니다.';
+        }
+      }
+
+      function connectToOnlineRoom(role) {
+        const isSpec = role === 'spectator';
+        const statusEl = document.getElementById(isSpec ? 'spec-status-text' : 'join-status-text');
+        const inputEl = document.getElementById(isSpec ? 'spec-code-input' : 'join-code-input');
+
+        if (typeof Peer === 'undefined') {
+          statusEl.textContent = '❌ 네트워크 모듈(PeerJS)을 불러올 수 없습니다.';
+          return;
+        }
+        const code = (inputEl.value || '').replace(/\D/g, '');
+        if (code.length !== 4) {
+          statusEl.textContent = '⚠️ 4자리 숫자 방 번호를 입력해 주세요.';
+          return;
+        }
+        cleanupNetwork();
+        resetChat();
+        net.role = role;
+        net.myColor = isSpec ? 0 : 2;
+        net.roomCode = code;
+        net.myName = (document.getElementById('online-nick-input').value || '').trim() || (isSpec ? '관전자' : '도전자');
+        statusEl.textContent = `🔌 방 ${code}에 연결 중...`;
+
+        try {
+          const peer = new Peer(PEER_CONFIG);
+          net.peer = peer;
+          peer.on('open', () => {
+            const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+            setupClientConnection(conn, role);
+          });
+          peer.on('error', (err) => {
+            statusEl.textContent = err && err.type === 'peer-unavailable'
+              ? '❌ 해당 방 번호를 찾을 수 없습니다. 번호를 다시 확인해 주세요.'
+              : '❌ 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+          });
+        } catch (err) {
+          statusEl.textContent = '❌ 연결 시도 중 오류가 발생했습니다.';
+        }
+      }
+
+      /* --------------------------------------------------------------------------
+       * 10. UI EVENT BINDINGS
+       * -------------------------------------------------------------------------- */
+      function bindUIEvents() {
+        const modeAiBtn = document.getElementById('mode-ai-btn');
+        const modeLocalBtn = document.getElementById('mode-local-btn');
+        const modeOnlineBtn = document.getElementById('mode-online-btn');
+        const aiBox = document.getElementById('ai-setup-box');
+        const localBox = document.getElementById('local-setup-box');
+        const onlineBox = document.getElementById('online-setup-box');
+        const ruleBox = document.getElementById('rule-setup-box');
+        const startBtn = document.getElementById('start-game-btn');
+
+        const tabHost = document.getElementById('online-tab-host');
+        const tabJoin = document.getElementById('online-tab-join');
+        const tabSpec = document.getElementById('online-tab-spectate');
+        const hostPanel = document.getElementById('online-host-panel');
+        const joinPanel = document.getElementById('online-join-panel');
+        const specPanel = document.getElementById('online-spectate-panel');
+
+        let onlineSubTab = 'host';
+        function setOnlineSubTab(tab) {
+          onlineSubTab = tab;
+          const inactive = 'py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-amber-100/80 hover:bg-white/10 transition cursor-pointer';
+          tabHost.className = tab === 'host'
+            ? 'py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-emerald-500 text-stone-950 transition cursor-pointer' : inactive;
+          tabJoin.className = tab === 'join'
+            ? 'py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-emerald-500 text-stone-950 transition cursor-pointer' : inactive;
+          tabSpec.className = tab === 'spectate'
+            ? 'py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-purple-400 text-stone-950 transition cursor-pointer' : inactive;
+
+          hostPanel.classList.toggle('hidden', tab !== 'host');
+          joinPanel.classList.toggle('hidden', tab !== 'join');
+          specPanel.classList.toggle('hidden', tab !== 'spectate');
+
+          if (tab === 'host') {
+            const isWaiting = !document.getElementById('host-waiting-box').classList.contains('hidden');
+            ruleBox.classList.toggle('hidden', isWaiting);
+          } else {
+            ruleBox.classList.add('hidden');
+          }
+        }
+        tabHost.addEventListener('click', () => setOnlineSubTab('host'));
+        tabJoin.addEventListener('click', () => setOnlineSubTab('join'));
+        tabSpec.addEventListener('click', () => setOnlineSubTab('spectate'));
+
+        function setModeUI(mode) {
+          game.mode = mode;
+          const inactive = 'py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border border-white/15 bg-white/10 text-amber-100 hover:bg-white/20 transition cursor-pointer';
+          modeAiBtn.className = mode === 'ai'
+            ? 'py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border-2 border-amber-300 bg-amber-400 text-stone-950 shadow transition cursor-pointer' : inactive;
+          modeLocalBtn.className = mode === 'local'
+            ? 'py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border-2 border-sky-300 bg-sky-400 text-stone-950 shadow transition cursor-pointer' : inactive;
+          modeOnlineBtn.className = mode === 'online'
+            ? 'py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border-2 border-emerald-300 bg-emerald-400 text-stone-950 shadow transition cursor-pointer' : inactive;
+
+          aiBox.classList.toggle('hidden', mode !== 'ai');
+          localBox.classList.toggle('hidden', mode !== 'local');
+          onlineBox.classList.toggle('hidden', mode !== 'online');
+          startBtn.classList.toggle('hidden', mode === 'online');
+
+          if (mode === 'online') {
+            setOnlineSubTab(onlineSubTab);
+          } else {
+            ruleBox.classList.remove('hidden');
+          }
+        }
+        modeAiBtn.addEventListener('click', () => setModeUI('ai'));
+        modeLocalBtn.addEventListener('click', () => setModeUI('local'));
+        modeOnlineBtn.addEventListener('click', () => setModeUI('online'));
+
+        // AI Difficulty Buttons
+        document.querySelectorAll('.diff-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            game.aiDifficulty = btn.dataset.diff;
+            document.querySelectorAll('.diff-btn').forEach((b) => {
+              const active = b.dataset.diff === game.aiDifficulty;
+              b.className = active
+                ? 'diff-btn px-3 py-1 rounded-xl text-xs font-bold bg-amber-400 text-stone-950 border border-amber-200 cursor-pointer transition'
+                : 'diff-btn px-3 py-1 rounded-xl text-xs font-bold bg-white/10 border border-white/15 text-amber-100 cursor-pointer transition';
+            });
+          });
+        });
+
+        // AI Human Color Buttons
+        document.querySelectorAll('.color-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            game.humanColor = parseInt(btn.dataset.color, 10);
+            document.querySelectorAll('.color-btn').forEach((b) => {
+              const active = parseInt(b.dataset.color, 10) === game.humanColor;
+              b.className = active
+                ? 'color-btn px-3 py-1 rounded-xl text-xs font-bold bg-amber-400 text-stone-950 border border-amber-200 cursor-pointer transition'
+                : 'color-btn px-3 py-1 rounded-xl text-xs font-bold bg-white/10 border border-white/15 text-amber-100 cursor-pointer transition';
+            });
+          });
+        });
+
+        // Rule Buttons (Renju vs Free)
+        const renjuBtn = document.getElementById('rule-renju-btn');
+        const freeBtn = document.getElementById('rule-free-btn');
+        const ruleDesc = document.getElementById('rule-desc-text');
+        function setRuleUI(rule) {
+          game.rule = rule;
+          const activeCls = 'py-2 px-2 rounded-xl text-xs font-bold bg-amber-400 text-stone-950 border border-amber-200 shadow transition cursor-pointer';
+          const inactiveCls = 'py-2 px-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer';
+          renjuBtn.className = rule === 'renju' ? activeCls : inactiveCls;
+          freeBtn.className = rule === 'free' ? activeCls : inactiveCls;
+          ruleDesc.textContent = rule === 'renju'
+            ? '렌주룰: 흑은 3·3, 4·4, 장목(6목 이상)이 금지되며 정확히 5목일 때 승리합니다. 백은 제한이 없습니다.'
+            : '자유룰: 흑과 백 모두 금수 없이 먼저 5목 이상을 완성하면 승리합니다.';
+        }
+        renjuBtn.addEventListener('click', () => setRuleUI('renju'));
+        freeBtn.addEventListener('click', () => setRuleUI('free'));
+
+        // Start & Resume Buttons
+        startBtn.addEventListener('click', () => {
+          sound.ensureContext();
+          startLocalOrAIGame();
+        });
+        document.getElementById('cancel-settings-btn').addEventListener('click', () => hideModal(elStartModal));
+
+        // Online Room Controls
+        document.getElementById('create-room-btn').addEventListener('click', () => {
+          sound.ensureContext();
+          createOnlineRoom();
+        });
+        document.getElementById('cancel-room-btn').addEventListener('click', () => {
+          cleanupNetwork();
+          document.getElementById('host-waiting-box').classList.add('hidden');
+          document.getElementById('host-before-create').classList.remove('hidden');
+          ruleBox.classList.remove('hidden');
+          updateHUD();
+        });
+        document.getElementById('copy-code-btn').addEventListener('click', () => {
+          if (copyToClipboard(net.roomCode)) {
+            showToast('방 번호 복사 완료!', `코드: ${net.roomCode}`, 'success', 1200);
+          }
+        });
+        document.getElementById('copy-link-btn').addEventListener('click', () => {
+          const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${net.roomCode}`;
+          if (copyToClipboard(inviteUrl)) {
+            showToast('대결 초대 링크 복사 완료!', '카카오톡이나 문자로 붙여넣어 초대하세요', 'success', 1500);
+          }
+        });
+        document.getElementById('copy-spec-link-btn').addEventListener('click', () => {
+          const specUrl = `${window.location.origin}${window.location.pathname}?room=${net.roomCode}&spectate=1`;
+          if (copyToClipboard(specUrl)) {
+            showToast('관전 링크 복사 완료!', '링크를 누르면 바로 관전 모드로 입장합니다', 'success', 1600);
+          }
+        });
+        document.getElementById('join-room-btn').addEventListener('click', () => {
+          sound.ensureContext();
+          connectToOnlineRoom('guest');
+        });
+        document.getElementById('spectate-room-btn').addEventListener('click', () => {
+          sound.ensureContext();
+          connectToOnlineRoom('spectator');
+        });
+
+        // Real-time Chat Controls
+        const chatInput = document.getElementById('chat-input');
+        function submitChat() {
+          if (game.mode !== 'online' || !net.connected) return;
+          const text = (chatInput.value || '').trim();
+          if (!text) return;
+          chatInput.value = '';
+          const payload = {
+            type: 'chat',
+            roleTag: myRoleTag(),
+            sender: net.myName,
+            text
+          };
+          appendChatMessage({ ...payload, isSelf: true }, false);
+          sendNet(payload);
+        }
+        document.getElementById('chat-send-btn').addEventListener('click', submitChat);
+        chatInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            submitChat();
+          }
+        });
+        document.getElementById('chat-minimize-btn').addEventListener('click', () => {
+          chatState.isOpen = false;
+          updateChatPanelVisibility();
+        });
+        document.getElementById('chat-toggle-btn').addEventListener('click', () => {
+          chatState.isOpen = true;
+          chatState.unread = 0;
+          updateChatPanelVisibility();
+          renderChatMessages();
+        });
+
+        // Floating Confirm Bar Buttons
+        elConfirmPlaceBtn.addEventListener('click', () => {
+          if (!game.previewCell || !canHumanAct()) return;
+          const { r, c } = game.previewCell;
+          hideConfirmBar();
+          placeStone(r, c, game.turn, false);
+        });
+        document.getElementById('cancel-preview-btn').addEventListener('click', hideConfirmBar);
+
+        // Top-Right Utility Controls (View & Zoom work for Spectators too!)
+        document.getElementById('view-toggle-btn').addEventListener('click', () => {
+          if (camCtrl.viewMode === '3d') {
+            camCtrl.viewMode = '2d';
+            camCtrl.targetPitch = 0.002;
+          } else {
+            camCtrl.viewMode = '3d';
+            camCtrl.targetPitch = 0.34;
+          }
+          updateHUD();
+        });
+
+        document.getElementById('zoom-in-btn').addEventListener('click', () => {
+          camCtrl.targetZoom = Math.max(camCtrl.minZoom, camCtrl.targetZoom - 4.0);
+          clampPan();
+        });
+        document.getElementById('zoom-out-btn').addEventListener('click', () => {
+          camCtrl.targetZoom = Math.min(camCtrl.maxZoom, camCtrl.targetZoom + 4.0);
+          clampPan();
+        });
+
+        document.getElementById('confirm-toggle-btn').addEventListener('click', () => {
+          if (isSpectator()) return;
+          game.confirmMode = !game.confirmMode;
+          if (!game.confirmMode) hideConfirmBar();
+          updateHUD();
+        });
+
+        document.getElementById('undo-btn').addEventListener('click', undoLastMove);
+
+        document.getElementById('sound-btn').addEventListener('click', () => {
+          sound.enabled = !sound.enabled;
+          document.getElementById('sound-on-icon').classList.toggle('hidden', !sound.enabled);
+          document.getElementById('sound-off-icon').classList.toggle('hidden', sound.enabled);
+        });
+
+        document.getElementById('new-game-btn').addEventListener('click', () => {
+          const canResume = (game.started || isSpectator()) && !game.over;
+          document.getElementById('cancel-settings-btn').classList.toggle('hidden', !canResume);
+          showModal(elStartModal);
+        });
+
+        // 5 Emoji Reaction Buttons (👏 🔥 😂 😱 🎉)
+        document.querySelectorAll('.emoji-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (game.mode !== 'online' || !net.connected) return;
+            const emoji = btn.dataset.emoji;
+            const senderLabel = `[${myRoleTag()}] ${net.myName}`;
+            spawnFloatingEmoji(emoji, senderLabel);
+            sendNet({ type: 'emoji', emoji, sender: senderLabel });
+          });
+        });
+
+        // Result Modal Buttons
+        document.getElementById('rematch-btn').addEventListener('click', () => {
+          if (game.mode === 'online' && net.connected && !isSpectator()) {
+            net.myRematch = true;
+            sendNet({ type: 'rematch_request' });
+            if (net.oppRematch) {
+              if (net.role === 'host') triggerOnlineRematch();
+            } else {
+              const statusEl = document.getElementById('rematch-status-text');
+              statusEl.textContent = '⏳ 상대방의 다시 대결하기 응답을 기다리는 중...';
+              statusEl.classList.remove('hidden');
+            }
+            return;
+          }
+          startLocalOrAIGame();
+        });
+
+        document.getElementById('result-menu-btn').addEventListener('click', () => {
+          if (game.mode === 'online') {
+            cleanupNetwork();
+            resetChat();
+          }
+          hideModal(elResultModal);
+          document.getElementById('host-waiting-box').classList.add('hidden');
+          document.getElementById('host-before-create').classList.remove('hidden');
+          document.getElementById('cancel-settings-btn').classList.add('hidden');
+          showModal(elStartModal);
+          updateHUD();
+        });
+
+        // Disconnect Modal Return
+        document.getElementById('disconnect-menu-btn').addEventListener('click', () => {
+          cleanupNetwork();
+          resetChat();
+          game.started = false;
+          hideModal(elDisconnectModal);
+          document.getElementById('host-waiting-box').classList.add('hidden');
+          document.getElementById('host-before-create').classList.remove('hidden');
+          document.getElementById('cancel-settings-btn').classList.add('hidden');
+          showModal(elStartModal);
+          updateHUD();
+        });
+
+        // Auto-detect ?room=XXXX and optional &spectate=1 URL parameters
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const urlRoom = params.get('room');
+          const isSpecParam = params.get('spectate') === '1';
+          if (urlRoom && /^\d{4}$/.test(urlRoom)) {
+            setModeUI('online');
+            if (isSpecParam) {
+              setOnlineSubTab('spectate');
+              document.getElementById('spec-code-input').value = urlRoom;
+              document.getElementById('spec-status-text').textContent = `👀 관전 링크(${urlRoom})로 접속했습니다! 관전 입장하기를 눌러주세요.`;
+            } else {
+              setOnlineSubTab('join');
+              document.getElementById('join-code-input').value = urlRoom;
+              document.getElementById('join-status-text').textContent = `🔗 초대 링크(${urlRoom})로 접속했습니다! 대국 입장하기를 눌러주세요.`;
+            }
+          }
+        } catch (e) {}
+      }
+
+      /* --------------------------------------------------------------------------
+       * 11. 60FPS ANIMATION LOOP
+       * -------------------------------------------------------------------------- */
+      let lastTime = 0;
+      function animate(time) {
+        requestAnimationFrame(animate);
+        const dt = Math.min((time - lastTime) / 1000 || 0.016, 0.05);
+        lastTime = time;
+
+        if (!threeReady) return;
+
+        // Smooth camera interpolation (zoom, pitch, pan)
+        const lerpAmt = 1 - Math.exp(-8.5 * dt);
+        camCtrl.zoom += (camCtrl.targetZoom - camCtrl.zoom) * lerpAmt;
+        camCtrl.pitch += (camCtrl.targetPitch - camCtrl.pitch) * lerpAmt;
+        camCtrl.panX += (camCtrl.targetPanX - camCtrl.panX) * lerpAmt;
+        camCtrl.panZ += (camCtrl.targetPanZ - camCtrl.panZ) * lerpAmt;
+
+        const camY = Math.cos(camCtrl.pitch) * camCtrl.zoom;
+        const camZ = Math.sin(camCtrl.pitch) * camCtrl.zoom;
+        camera.position.set(camCtrl.panX, camY, camCtrl.panZ + camZ);
+        camera.lookAt(camCtrl.panX, 0, camCtrl.panZ);
+
+        // Animate dropping stones
+        for (let i = droppingStones.length - 1; i >= 0; i--) {
+          const s = droppingStones[i];
+          s.vel -= 28 * dt;
+          s.y += s.vel * dt;
+          if (s.y <= s.targetY) {
+            s.y = s.targetY;
+            if (Math.abs(s.vel) > 2.2) {
+              s.vel = -s.vel * 0.22;
+            } else {
+              s.mesh.position.y = s.targetY;
+              droppingStones.splice(i, 1);
+              continue;
+            }
+          }
+          s.mesh.position.y = s.y;
+        }
+
+        // Gentle pulse on winning golden rings
+        if (winRingGroup && winRingGroup.children.length > 0) {
+          const pulse = 1 + Math.sin(time * 0.006) * 0.07;
+          winRingGroup.children.forEach((ring) => {
+            ring.scale.set(pulse, pulse, 1);
+          });
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      /* --------------------------------------------------------------------------
+       * 12. BOOTSTRAP ON LOAD
+       * -------------------------------------------------------------------------- */
+      window.addEventListener('load', () => {
+        resetBoardState();
+        initThreeScene();
+        bindUIEvents();
+        updateHUD();
+        requestAnimationFrame(animate);
+      });
+    })();
+  </script>
+</body>
+</html>

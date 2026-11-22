@@ -1,0 +1,3341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>3D 한국 전통 공기놀이 · 솔로 / 로컬 2인 / 온라인 대결 & 관전</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js r128 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- PeerJS (WebRTC P2P Multiplayer & Spectating) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- Google Fonts: Jua & Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    input, textarea {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #261911;
+      color: #fdf8f0;
+    }
+
+    .font-display {
+      font-family: 'Jua', 'Noto Sans KR', sans-serif;
+    }
+
+    /* 3D Canvas Container */
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      touch-action: none;
+    }
+
+    #canvas-container canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Strict Hidden Rule: Hidden overlays NEVER block clicks or touch events */
+    .hidden,
+    .modal-hidden {
+      display: none !important;
+      pointer-events: none !important;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.9rem;
+      pointer-events: auto;
+    }
+
+    /* Warm Hanok Glassmorphic Panel */
+    .glass-panel {
+      background: rgba(34, 22, 15, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 224, 178, 0.25);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Tactile HOLD Button */
+    .hold-btn {
+      background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+      border: 3px solid #fef08a;
+      box-shadow: 0 6px 0 #92400e, 0 10px 24px rgba(217, 119, 6, 0.5);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+      touch-action: none;
+    }
+
+    .hold-btn:hover:not(:disabled) {
+      filter: brightness(1.06);
+    }
+
+    .hold-btn:active:not(:disabled),
+    .hold-btn.holding:not(:disabled) {
+      transform: translateY(4px) scale(0.96);
+      box-shadow: 0 2px 0 #92400e, 0 4px 12px rgba(217, 119, 6, 0.4);
+      background: linear-gradient(180deg, #fcd34d 0%, #ea580c 100%);
+    }
+
+    .hold-btn.stage5-roll {
+      background: linear-gradient(180deg, #f472b6 0%, #be185d 100%);
+      border-color: #fbcfe8;
+      box-shadow: 0 6px 0 #831843, 0 10px 24px rgba(190, 24, 93, 0.5);
+    }
+
+    .hold-btn.stage5-roll:active:not(:disabled) {
+      box-shadow: 0 2px 0 #831843, 0 4px 12px rgba(190, 24, 93, 0.4);
+    }
+
+    .hold-btn:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+      filter: grayscale(0.4);
+    }
+
+    /* Primary Action Button */
+    .btn-primary {
+      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+      border: 2px solid #fde68a;
+      box-shadow: 0 4px 0 #92400e, 0 8px 18px rgba(217, 119, 6, 0.35);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      filter: brightness(1.06);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #92400e;
+    }
+
+    /* Vertical Gauge Target Zone & Marker */
+    .v-target-zone {
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.85), rgba(52, 211, 153, 0.96), rgba(16, 185, 129, 0.85));
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.75) inset, 0 0 10px rgba(16, 185, 129, 0.55);
+      transition: bottom 0.3s ease, height 0.3s ease;
+    }
+
+    .v-gauge-marker {
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 4px rgba(0, 0, 0, 0.9);
+      transition: background-color 0.08s ease;
+    }
+
+    /* Active Player Card Glow in 2P Mode */
+    .player-card-active {
+      border: 2px solid #fbbf24 !important;
+      background: rgba(251, 191, 36, 0.18) !important;
+      box-shadow: 0 0 16px rgba(251, 191, 36, 0.35);
+    }
+
+    /* Floating Toast Animation */
+    @keyframes popIn {
+      0% { opacity: 0; transform: translate(-50%, -35%) scale(0.84); }
+      60% { opacity: 1; transform: translate(-50%, -52%) scale(1.04); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .toast-pop {
+      animation: popIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Floating Emoji Reaction Animation */
+    @keyframes floatEmoji {
+      0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
+      18% { opacity: 1; transform: translate(-50%, -26px) scale(1.22); }
+      80% { opacity: 1; transform: translate(-50%, -135px) scale(1.0); }
+      100% { opacity: 0; transform: translate(-50%, -175px) scale(0.85); }
+    }
+
+    .floating-emoji {
+      position: fixed;
+      z-index: 45;
+      pointer-events: none;
+      animation: floatEmoji 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* Custom Thin Scrollbar */
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 999px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(251, 191, 36, 0.45);
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Three.js Canvas Container -->
+  <div id="canvas-container" aria-label="3D 공기놀이 게임 화면"></div>
+
+  <!-- Floating Emoji Layer -->
+  <div id="emoji-layer" class="fixed inset-0 z-40 pointer-events-none overflow-hidden"></div>
+
+  <!-- ========================================================================
+       UI OVERLAY LAYER (pointer-events-none on container, auto only on controls)
+       ======================================================================== -->
+  <div class="fixed inset-0 z-10 pointer-events-none">
+
+    <!-- TOP HUD BAR -->
+    <header class="absolute top-0 left-0 right-0 p-2 sm:p-3.5 flex flex-wrap items-start justify-between gap-2 pointer-events-none">
+
+      <!-- TOP-LEFT: 1P SOLO HUD -->
+      <div id="hud-1p" class="glass-panel rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 pointer-events-auto flex flex-col gap-1.5 min-w-[165px] sm:min-w-[215px]">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-baseline gap-1">
+            <span id="score-val-1p" class="font-display text-lg sm:text-2xl text-amber-300 leading-none">0</span>
+            <span class="text-xs sm:text-sm text-amber-100/75 font-bold">/ <span id="target-score-1p">10</span>점</span>
+          </div>
+          <div id="retry-hearts" class="flex items-center gap-0.5 bg-black/35 px-2 py-0.5 rounded-full border border-white/10" title="남은 재시도 기회"></div>
+        </div>
+        <div class="w-full h-2 rounded-full bg-stone-950/90 overflow-hidden border border-white/10">
+          <div id="score-progress-1p" class="h-full rounded-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-500" style="width: 0%;"></div>
+        </div>
+        <div class="flex items-center justify-between text-[10px] sm:text-[11px] text-amber-200/80 font-medium">
+          <span id="round-badge-1p" class="text-amber-300 font-bold">1회차 (100%)</span>
+          <span id="retry-text" class="text-rose-200/90">기회 3/3</span>
+        </div>
+      </div>
+
+      <!-- TOP-LEFT: 2P VS / ONLINE / SPECTATOR HUD -->
+      <div id="hud-2p" class="hidden flex-col gap-1.5 pointer-events-auto">
+        <div class="glass-panel rounded-2xl p-2 flex items-center gap-1.5 sm:gap-2">
+          <!-- Player 1 Card -->
+          <div id="p1-card" class="rounded-xl px-2.5 py-1.5 border border-white/15 bg-black/30 min-w-[92px] sm:min-w-[126px] transition">
+            <div class="flex items-center justify-between gap-1">
+              <span id="p1-name-hud" class="text-[11px] sm:text-xs font-bold text-amber-200 truncate max-w-[66px] sm:max-w-[90px]">플레이어 1</span>
+              <span id="p1-turn-dot" class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+            </div>
+            <div class="flex items-baseline gap-1 mt-0.5">
+              <span id="p1-score-hud" class="font-display text-lg sm:text-xl text-white leading-none">0</span>
+              <span class="text-[10px] text-amber-100/70">/ <span class="target-score-2p">10</span>점</span>
+            </div>
+            <div id="p1-stage-hud" class="text-[10px] text-emerald-300/90 font-medium mt-0.5">1회차 · 1단</div>
+          </div>
+
+          <div class="font-display text-xs text-amber-400/80">VS</div>
+
+          <!-- Player 2 Card -->
+          <div id="p2-card" class="rounded-xl px-2.5 py-1.5 border border-white/15 bg-black/30 min-w-[92px] sm:min-w-[126px] transition">
+            <div class="flex items-center justify-between gap-1">
+              <span id="p2-name-hud" class="text-[11px] sm:text-xs font-bold text-sky-200 truncate max-w-[66px] sm:max-w-[90px]">플레이어 2</span>
+              <span id="p2-turn-dot" class="w-2 h-2 rounded-full bg-sky-400 shrink-0 opacity-0"></span>
+            </div>
+            <div class="flex items-baseline gap-1 mt-0.5">
+              <span id="p2-score-hud" class="font-display text-lg sm:text-xl text-white leading-none">0</span>
+              <span class="text-[10px] text-amber-100/70">/ <span class="target-score-2p">10</span>점</span>
+            </div>
+            <div id="p2-stage-hud" class="text-[10px] text-sky-300/90 font-medium mt-0.5">1회차 · 1단</div>
+          </div>
+        </div>
+
+        <!-- Online Connection Status, Turn Indicator & Spectator Count -->
+        <div id="online-status-row" class="hidden flex items-center gap-1.5 flex-wrap">
+          <div id="net-status-pill" class="glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-emerald-300 border border-emerald-400/40">
+            🟢 연결됨
+          </div>
+          <div id="spectator-count-pill" class="glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-purple-200 border border-purple-400/40">
+            👀 0명
+          </div>
+          <div id="online-turn-banner" class="glass-panel rounded-full px-3 py-0.5 text-[10px] sm:text-[11px] font-bold text-amber-200 border border-amber-300/40">
+            🎯 내 차례!
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP-CENTER: Stage Info & Stepper (Desktop/Tablet) -->
+      <div class="hidden md:flex flex-col items-center gap-1.5 pointer-events-auto">
+        <div class="glass-panel rounded-2xl px-4 py-2 flex items-center gap-3">
+          <span id="stage-badge-lg" class="font-display text-lg text-amber-200">1단 · 하나 집기</span>
+          <span class="w-px h-4 bg-white/20"></span>
+          <span id="progress-label-lg" class="text-xs font-bold text-white">1/4회 · 1개 집기</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <div data-step="1" class="step-pill px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-400 text-stone-950 shadow">1단</div>
+          <div data-step="2" class="step-pill px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-900/75 text-stone-400 border border-white/10">2단</div>
+          <div data-step="3" class="step-pill px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-900/75 text-stone-400 border border-white/10">3단</div>
+          <div data-step="4" class="step-pill px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-900/75 text-stone-400 border border-white/10">4단</div>
+          <div data-step="5" class="step-pill px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-900/75 text-stone-400 border border-white/10">5단 꺾기</div>
+        </div>
+      </div>
+
+      <!-- TOP-RIGHT: Utility Controls (Speed, Rules, Sound, New Game) -->
+      <div class="glass-panel rounded-2xl px-2 py-1.5 sm:px-2.5 sm:py-2 pointer-events-auto flex items-center gap-1.5">
+        <button id="speed-btn" type="button" title="게이지 속도 변경"
+          class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] sm:text-xs font-bold text-amber-100 transition cursor-pointer whitespace-nowrap">
+          속도: 보통
+        </button>
+
+        <button id="rules-btn" type="button" title="규칙 및 확률표"
+          class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] sm:text-xs font-bold text-amber-100 transition cursor-pointer whitespace-nowrap">
+          규칙/확률
+        </button>
+
+        <button id="sound-btn" type="button" title="효과음 켜기/끄기"
+          class="p-1.5 sm:p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">
+          <svg id="sound-on-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
+          </svg>
+          <svg id="sound-off-icon" class="w-4 h-4 hidden text-rose-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6" />
+          </svg>
+        </button>
+
+        <button id="new-game-btn" type="button" title="새 게임 / 모드 설정"
+          class="px-2.5 py-1.5 rounded-xl bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-300/40 text-[11px] sm:text-xs font-bold text-emerald-200 transition cursor-pointer whitespace-nowrap">
+          새 게임
+        </button>
+      </div>
+    </header>
+
+    <!-- ======================================================================
+         BOTTOM-LEFT: CHAT PANEL + EMOJI BAR + STAGE BADGE (Never blocks center 3D)
+         ====================================================================== -->
+    <div class="fixed bottom-3 left-2.5 sm:left-4 z-20 pointer-events-none flex flex-col items-start gap-1.5 max-w-[calc(100vw-112px)] sm:max-w-[330px]">
+
+      <!-- Online Real-Time Chat Panel (Collapsible) -->
+      <div id="chat-wrapper" class="hidden pointer-events-auto w-[250px] sm:w-[300px] flex flex-col gap-1.5">
+        <!-- Expanded Chat Box -->
+        <div id="chat-box" class="glass-panel rounded-2xl border border-amber-300/30 overflow-hidden flex flex-col">
+          <div class="flex items-center justify-between px-3 py-1.5 bg-black/35 border-b border-white/10">
+            <span class="text-[11px] font-bold text-amber-200">💬 실시간 채팅</span>
+            <button id="chat-minimize-btn" type="button" class="text-[11px] text-amber-100/70 hover:text-white px-1 cursor-pointer">접기 ▾</button>
+          </div>
+          <div id="chat-messages" class="h-[118px] sm:h-[142px] overflow-y-auto custom-scroll px-2.5 py-2 space-y-1 text-[11px] sm:text-xs leading-snug">
+            <div class="text-amber-100/50 text-center py-4">응원 메시지나 채팅을 입력해 보세요!</div>
+          </div>
+          <div class="flex items-center gap-1 p-1.5 bg-black/35 border-t border-white/10">
+            <input id="chat-input" type="text" maxlength="60" placeholder="메시지 입력..."
+              class="flex-1 min-w-0 px-2.5 py-1.5 rounded-xl bg-stone-950/85 border border-white/15 text-white text-xs focus:outline-none focus:border-amber-400" />
+            <button id="chat-send-btn" type="button"
+              class="px-2.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs shrink-0 cursor-pointer transition">
+              전송
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsed Chat Toggle Button + Unread Badge -->
+        <div class="flex items-center gap-1.5">
+          <button id="chat-toggle-btn" type="button"
+            class="hidden glass-panel rounded-full px-3 py-1.5 border border-amber-300/40 text-xs font-bold text-amber-200 hover:bg-white/15 flex items-center gap-1.5 cursor-pointer transition">
+            <span>💬 채팅</span>
+            <span id="chat-unread-badge" class="hidden px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black leading-tight">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Online Emoji Bar (👏 🔥 😂 😱 🎉) -->
+      <div id="emoji-bar" class="hidden pointer-events-auto flex items-center gap-1 sm:gap-1.5">
+        <button type="button" data-emoji="👏" class="emoji-btn glass-panel w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm sm:text-base flex items-center justify-center hover:scale-110 active:scale-90 transition cursor-pointer">👏</button>
+        <button type="button" data-emoji="🔥" class="emoji-btn glass-panel w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm sm:text-base flex items-center justify-center hover:scale-110 active:scale-90 transition cursor-pointer">🔥</button>
+        <button type="button" data-emoji="😂" class="emoji-btn glass-panel w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm sm:text-base flex items-center justify-center hover:scale-110 active:scale-90 transition cursor-pointer">😂</button>
+        <button type="button" data-emoji="😱" class="emoji-btn glass-panel w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm sm:text-base flex items-center justify-center hover:scale-110 active:scale-90 transition cursor-pointer">😱</button>
+        <button type="button" data-emoji="🎉" class="emoji-btn glass-panel w-8 h-8 sm:w-9 sm:h-9 rounded-full text-sm sm:text-base flex items-center justify-center hover:scale-110 active:scale-90 transition cursor-pointer">🎉</button>
+      </div>
+
+      <!-- Mobile Compact Stage Badge -->
+      <div class="md:hidden glass-panel rounded-2xl px-3 py-1.5">
+        <div id="stage-badge-sm" class="font-display text-sm text-amber-200 leading-tight">1단 · 하나 집기</div>
+        <div id="progress-label-sm" class="text-[11px] font-bold text-white/90 mt-0.5">1/4회 · 1개 집기</div>
+      </div>
+
+      <!-- Desktop Controls Hint -->
+      <div class="hidden md:block glass-panel rounded-xl px-3 py-1 text-[11px] text-amber-100/75">
+        <span class="text-amber-300 font-bold">Space</span> 또는 오른쪽 <span class="text-amber-300 font-bold">잡기(HOLD)</span> · 배경 드래그 시점 회전
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         RIGHT-SIDE VERTICAL GAUGE (0~100) & HOLD BUTTON
+         ====================================================================== -->
+    <aside class="absolute right-2 sm:right-4 top-[84px] sm:top-[90px] bottom-3 sm:bottom-5 flex flex-col items-center justify-between gap-2.5 pointer-events-auto z-20">
+
+      <!-- Vertical Gauge Card -->
+      <div class="glass-panel rounded-3xl px-2 sm:px-3 py-2.5 sm:py-3 flex flex-col items-center gap-1.5 flex-1 min-h-[200px] max-h-[450px] w-[76px] sm:w-[92px]">
+        <div class="text-center leading-none">
+          <div class="text-[9px] sm:text-[10px] text-amber-200/75 font-medium">게이지</div>
+          <div id="gauge-num" class="font-display text-2xl sm:text-3xl text-white tabular-nums mt-0.5">0</div>
+        </div>
+
+        <div class="w-full text-center bg-emerald-950/75 border border-emerald-400/35 rounded-xl px-1 py-1 leading-tight">
+          <div id="target-range-text" class="text-[10px] sm:text-[11px] font-bold text-emerald-300 tabular-nums">45~95</div>
+          <div id="target-width-text" class="text-[9px] sm:text-[10px] text-emerald-200/80 font-medium">폭 50%</div>
+        </div>
+
+        <!-- 0~100 Track -->
+        <div class="relative flex-1 w-8 sm:w-10 rounded-2xl bg-stone-950/90 border border-amber-200/25 overflow-hidden shadow-inner my-0.5">
+          <span class="absolute top-1 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white/45 pointer-events-none z-10">100</span>
+          <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white/45 pointer-events-none z-10">0</span>
+
+          <div class="absolute inset-0 pointer-events-none flex flex-col justify-between py-[20%] opacity-25">
+            <div class="w-full h-px bg-white"></div>
+            <div class="w-full h-px bg-white"></div>
+            <div class="w-full h-px bg-white"></div>
+            <div class="w-full h-px bg-white"></div>
+          </div>
+
+          <div id="target-zone-bar" class="v-target-zone absolute left-0 right-0 rounded-sm" style="bottom: 45%; height: 50%;"></div>
+          <div id="gauge-fill" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-amber-500/20 to-amber-300/45 pointer-events-none" style="height: 0%;"></div>
+          <div id="gauge-marker" class="v-gauge-marker absolute left-0.5 right-0.5 h-2 -mb-1 rounded-full bg-white pointer-events-none" style="bottom: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Bottom-Right HOLD Action Button (Hidden for Spectators) -->
+      <button id="action-btn" type="button"
+        class="hold-btn w-[78px] h-[78px] sm:w-[92px] sm:h-[92px] rounded-full flex flex-col items-center justify-center text-stone-950 cursor-pointer shrink-0 leading-tight px-1">
+        <span id="action-btn-main" class="font-display text-lg sm:text-xl">잡기</span>
+        <span id="action-btn-sub" class="text-[10px] sm:text-[11px] font-black tracking-tight opacity-80">HOLD</span>
+      </button>
+    </aside>
+
+    <!-- ======================================================================
+         CENTER FLOATING FEEDBACK TOAST (Non-blocking)
+         ====================================================================== -->
+    <div id="feedback-toast" class="hidden fixed left-1/2 top-[26%] -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
+      <div id="feedback-box" class="glass-panel rounded-2xl px-6 py-3.5 text-center border-2 max-w-[85vw]">
+        <div id="feedback-title" class="font-display text-2xl sm:text-3xl tracking-wide">성공!</div>
+        <div id="feedback-sub" class="text-xs sm:text-sm text-amber-100/90 mt-0.5 font-medium"></div>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         1P RETRY BANNER
+         ====================================================================== -->
+    <div id="retry-panel" class="hidden fixed left-1/2 bottom-5 -translate-x-1/2 z-30 pointer-events-auto w-[86vw] max-w-sm">
+      <div class="glass-panel rounded-3xl p-4 border-2 border-rose-400/50 text-center space-y-2.5">
+        <div class="font-display text-xl text-rose-300">아쉽습니다! 놓쳤습니다</div>
+        <div id="retry-detail" class="text-xs sm:text-sm text-amber-100/90 font-medium"></div>
+        <button id="retry-stage-btn" type="button"
+          class="btn-primary w-full py-3 rounded-2xl font-display text-base sm:text-lg text-stone-950">
+          재시도 (남은 기회 3회)
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================================
+       MODAL 1: START / MODE & TARGET SCORE SETTINGS MODAL
+       ======================================================================== -->
+  <div id="start-modal" class="modal-backdrop">
+    <div class="glass-panel rounded-3xl max-w-md w-full p-5 sm:p-6 border border-amber-300/35 space-y-4 max-h-[92vh] overflow-y-auto custom-scroll">
+      <div class="text-center space-y-1">
+        <div class="inline-block px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-300/40 text-amber-200 text-xs font-bold">
+          3D 한국 전통 손재주 게임
+        </div>
+        <h1 class="font-display text-3xl sm:text-4xl text-amber-300 tracking-wide">3D 공기놀이</h1>
+      </div>
+
+      <!-- Mode Toggle: 1P vs Local 2P vs Online 2P & Spectate -->
+      <div class="grid grid-cols-3 gap-1.5">
+        <button id="mode-1p-btn" type="button"
+          class="py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border-2 border-amber-300 bg-amber-400 text-stone-950 shadow transition cursor-pointer">
+          👤 1인용
+        </button>
+        <button id="mode-2p-btn" type="button"
+          class="py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border border-white/15 bg-white/10 text-amber-100 hover:bg-white/20 transition cursor-pointer">
+          ⚔️ 로컬 2인
+        </button>
+        <button id="mode-online-btn" type="button"
+          class="py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border border-white/15 bg-white/10 text-amber-100 hover:bg-white/20 transition cursor-pointer">
+          🌐 온라인
+        </button>
+      </div>
+
+      <!-- Local 2P Player Name Inputs -->
+      <div id="player-names-box" class="hidden bg-black/30 rounded-2xl p-3.5 border border-sky-400/30 space-y-2.5">
+        <div class="text-xs font-bold text-sky-300">⚔️ 같은 기기로 2인 대결</div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label for="p1-name-input" class="block text-[11px] text-amber-200/80 mb-1">플레이어 1</label>
+            <input id="p1-name-input" type="text" maxlength="10" value="플레이어 1" placeholder="플레이어 1"
+              class="w-full px-3 py-2 rounded-xl bg-stone-950/85 border border-amber-300/35 text-white font-bold text-sm focus:outline-none focus:border-amber-400" />
+          </div>
+          <div>
+            <label for="p2-name-input" class="block text-[11px] text-sky-200/80 mb-1">플레이어 2</label>
+            <input id="p2-name-input" type="text" maxlength="10" value="플레이어 2" placeholder="플레이어 2"
+              class="w-full px-3 py-2 rounded-xl bg-stone-950/85 border border-sky-300/35 text-white font-bold text-sm focus:outline-none focus:border-sky-400" />
+          </div>
+        </div>
+        <p class="text-[11px] text-amber-100/70 leading-snug">
+          실패하면 현재 단계가 저장되고 상대방 차례로 넘어갑니다. 목표 점수에 먼저 도달하면 승리!
+        </p>
+      </div>
+
+      <!-- Online 2P & Spectate Network Setup Box -->
+      <div id="online-setup-box" class="hidden bg-black/30 rounded-2xl p-3.5 border border-emerald-400/35 space-y-3">
+        <div>
+          <label for="online-nick-input" class="block text-[11px] font-bold text-emerald-300 mb-1">내 닉네임</label>
+          <input id="online-nick-input" type="text" maxlength="10" value="공기고수" placeholder="닉네임 입력"
+            class="w-full px-3 py-2 rounded-xl bg-stone-950/85 border border-emerald-300/35 text-white font-bold text-sm focus:outline-none focus:border-emerald-400" />
+        </div>
+
+        <!-- Online 3 Sub-tabs: Host / Join / Spectate -->
+        <div class="grid grid-cols-3 gap-1 bg-stone-950/70 p-1 rounded-xl border border-white/10">
+          <button id="online-tab-host" type="button"
+            class="py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-emerald-500 text-stone-950 transition cursor-pointer">
+            🏠 방 만들기
+          </button>
+          <button id="online-tab-join" type="button"
+            class="py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-amber-100/80 hover:bg-white/10 transition cursor-pointer">
+            🚪 방 참여
+          </button>
+          <button id="online-tab-spectate" type="button"
+            class="py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-amber-100/80 hover:bg-white/10 transition cursor-pointer">
+            👀 관전하기
+          </button>
+        </div>
+
+        <!-- Host Sub-panel -->
+        <div id="online-host-panel" class="space-y-2.5">
+          <div id="host-before-create">
+            <button id="create-room-btn" type="button"
+              class="btn-primary w-full py-2.5 rounded-xl font-display text-base text-stone-950">
+              방 생성하기
+            </button>
+          </div>
+
+          <div id="host-waiting-box" class="hidden bg-emerald-950/50 border border-emerald-400/40 rounded-2xl p-3 text-center space-y-2.5">
+            <div class="flex items-center justify-between text-[11px] font-bold px-1">
+              <span class="text-emerald-300">4자리 방 코드</span>
+              <span id="host-waiting-spec-count" class="text-purple-200">👀 관전자 0명</span>
+            </div>
+            <div id="room-code-display" class="font-display text-4xl tracking-[0.22em] text-amber-300 select-all">0000</div>
+
+            <div class="grid grid-cols-2 gap-1.5">
+              <button id="copy-link-btn" type="button"
+                class="py-2 px-2 rounded-xl bg-emerald-500/30 hover:bg-emerald-500/45 border border-emerald-300/45 text-[11px] sm:text-xs font-bold text-emerald-200 transition cursor-pointer">
+                🔗 대결 초대 링크
+              </button>
+              <button id="copy-spec-link-btn" type="button"
+                class="py-2 px-2 rounded-xl bg-purple-500/30 hover:bg-purple-500/45 border border-purple-300/45 text-[11px] sm:text-xs font-bold text-purple-200 transition cursor-pointer">
+                👀 관전 링크 복사
+              </button>
+            </div>
+            <button id="copy-code-btn" type="button"
+              class="w-full py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-bold text-white transition cursor-pointer">
+              📋 방 번호만 복사
+            </button>
+
+            <div id="host-status-text" class="text-[11px] text-amber-200 animate-pulse">⏳ 도전자 입장을 기다리는 중...</div>
+            <button id="cancel-room-btn" type="button"
+              class="w-full py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 border border-rose-400/30 text-[11px] font-bold text-rose-200 cursor-pointer">
+              방 생성 취소
+            </button>
+          </div>
+        </div>
+
+        <!-- Guest Sub-panel -->
+        <div id="online-join-panel" class="hidden space-y-2.5">
+          <div>
+            <label for="join-code-input" class="block text-[11px] text-amber-200/80 mb-1">4자리 방 번호 입력 (도전자로 참가)</label>
+            <input id="join-code-input" type="text" inputmode="numeric" maxlength="4" placeholder="예: 4829"
+              class="w-full px-3 py-2.5 rounded-xl bg-stone-950/90 border border-amber-300/40 text-amber-300 font-display text-2xl tracking-[0.28em] text-center focus:outline-none focus:border-emerald-400" />
+          </div>
+          <button id="join-room-btn" type="button"
+            class="btn-primary w-full py-2.5 rounded-xl font-display text-base text-stone-950">
+            대결 입장하기
+          </button>
+          <div id="join-status-text" class="text-[11px] text-center text-amber-100/80 min-h-[16px]"></div>
+        </div>
+
+        <!-- Spectator Sub-panel -->
+        <div id="online-spectate-panel" class="hidden space-y-2.5">
+          <div>
+            <label for="spec-code-input" class="block text-[11px] text-purple-200/85 mb-1">4자리 방 번호 입력 (진행 중 중도 입장 가능)</label>
+            <input id="spec-code-input" type="text" inputmode="numeric" maxlength="4" placeholder="예: 4829"
+              class="w-full px-3 py-2.5 rounded-xl bg-stone-950/90 border border-purple-400/45 text-purple-200 font-display text-2xl tracking-[0.28em] text-center focus:outline-none focus:border-purple-400" />
+          </div>
+          <button id="spectate-room-btn" type="button"
+            class="w-full py-2.5 rounded-xl font-display text-base bg-gradient-to-b from-purple-400 to-purple-600 border-2 border-purple-200 text-stone-950 shadow-lg hover:brightness-105 active:translate-y-0.5 transition cursor-pointer">
+            👀 관전 입장하기
+          </button>
+          <div id="spec-status-text" class="text-[11px] text-center text-purple-200/85 min-h-[16px]"></div>
+        </div>
+      </div>
+
+      <!-- Target Score & Speed Settings Box -->
+      <div id="target-score-box" class="bg-black/30 rounded-2xl p-3.5 border border-white/10 space-y-3">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="custom-target-input" class="text-sm font-bold text-amber-200">🎯 목표 점수 설정</label>
+            <span class="text-xs text-amber-100/70">매 회차 게이지 10% 축소</span>
+          </div>
+
+          <div class="grid grid-cols-5 gap-1.5">
+            <button type="button" data-preset="5" class="preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">5점</button>
+            <button type="button" data-preset="10" class="preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-400 text-stone-950 border border-amber-200 shadow transition cursor-pointer">10점</button>
+            <button type="button" data-preset="15" class="preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">15점</button>
+            <button type="button" data-preset="20" class="preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">20점</button>
+            <button type="button" data-preset="30" class="preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">30점</button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-amber-100/75 whitespace-nowrap">직접 입력:</span>
+            <input id="custom-target-input" type="number" min="1" max="999" value="10"
+              class="w-full px-3 py-1.5 rounded-xl bg-stone-950/85 border border-amber-300/35 text-amber-200 font-bold text-center text-sm focus:outline-none focus:border-amber-400" />
+            <span class="text-xs font-bold text-amber-200">점</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-white/10">
+          <span class="text-xs font-bold text-amber-200">⚡ 게이지 속도</span>
+          <div class="flex gap-1.5">
+            <button type="button" data-speed-opt="0" class="modal-speed-btn px-3 py-1 rounded-xl text-xs font-bold bg-white/10 border border-white/15 text-amber-100 cursor-pointer transition">느림</button>
+            <button type="button" data-speed-opt="1" class="modal-speed-btn px-3 py-1 rounded-xl text-xs font-bold bg-amber-400 text-stone-950 border border-amber-200 cursor-pointer transition">보통</button>
+            <button type="button" data-speed-opt="2" class="modal-speed-btn px-3 py-1 rounded-xl text-xs font-bold bg-white/10 border border-white/15 text-amber-100 cursor-pointer transition">빠름</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2 pt-1">
+        <button id="start-game-btn" type="button"
+          class="btn-primary w-full py-3.5 rounded-2xl font-display text-xl text-stone-950 tracking-wide">
+          게임 시작하기
+        </button>
+        <div class="flex gap-2">
+          <button id="modal-rules-btn" type="button"
+            class="flex-1 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-bold text-amber-100 transition cursor-pointer">
+            📜 규칙/확률 보기
+          </button>
+          <button id="cancel-settings-btn" type="button"
+            class="hidden flex-1 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-bold text-amber-100 transition cursor-pointer">
+            계속 보기/플레이
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 2: LOCAL 2P TURN SWITCH MODAL
+       ======================================================================== -->
+  <div id="turn-modal" class="modal-backdrop modal-hidden">
+    <div class="glass-panel rounded-3xl max-w-sm w-full p-6 border-2 border-sky-400/60 text-center space-y-4">
+      <div class="text-4xl">🔄</div>
+      <div>
+        <div id="turn-fail-msg" class="text-sm font-bold text-rose-300">플레이어 1님 실패!</div>
+        <div id="turn-fail-detail" class="text-xs text-amber-100/75 mt-0.5">놓은 수치: 70 (목표: 80 ~ 90)</div>
+        <h2 id="turn-next-title" class="font-display text-2xl sm:text-3xl text-sky-300 mt-3">
+          👉 플레이어 2님의 차례
+        </h2>
+        <p id="turn-next-sub" class="text-xs sm:text-sm text-amber-100/85 mt-1">
+          1회차 · 1단부터 이어서 진행합니다!
+        </p>
+      </div>
+
+      <button id="start-next-turn-btn" type="button"
+        class="btn-primary w-full py-3.5 rounded-2xl font-display text-lg text-stone-950">
+        차례 시작하기
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 3: VICTORY (CLEAR) MODAL
+       ======================================================================== -->
+  <div id="victory-modal" class="modal-backdrop modal-hidden">
+    <div class="glass-panel rounded-3xl max-w-md w-full p-6 border-2 border-emerald-400/60 text-center space-y-4">
+      <div class="text-4xl sm:text-5xl">🏆</div>
+      <div>
+        <div class="text-xs font-bold text-emerald-300 tracking-widest uppercase">TARGET CLEAR!</div>
+        <h2 id="victory-title" class="font-display text-3xl sm:text-4xl text-amber-300 mt-1">목표 달성! 승리!</h2>
+        <p id="victory-desc" class="text-xs sm:text-sm text-amber-100/85 mt-1"></p>
+      </div>
+
+      <div id="victory-stats" class="grid grid-cols-3 gap-2 bg-black/35 rounded-2xl p-3.5 border border-white/10"></div>
+
+      <button id="victory-restart-btn" type="button"
+        class="btn-primary w-full py-3.5 rounded-2xl font-display text-lg text-stone-950">
+        다시 하기
+      </button>
+      <div id="rematch-status-text" class="hidden text-xs font-bold text-emerald-300 animate-pulse"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 4: 1P GAME OVER MODAL
+       ======================================================================== -->
+  <div id="gameover-modal" class="modal-backdrop modal-hidden">
+    <div class="glass-panel rounded-3xl max-w-md w-full p-6 border-2 border-rose-500/60 text-center space-y-4">
+      <div class="text-4xl sm:text-5xl">💔</div>
+      <div>
+        <div class="text-xs font-bold text-rose-400 tracking-widest uppercase">GAME OVER</div>
+        <h2 class="font-display text-3xl sm:text-4xl text-rose-300 mt-1">재시도 기회 소진!</h2>
+        <p id="gameover-reason" class="text-xs sm:text-sm text-amber-100/85 mt-1"></p>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 bg-black/35 rounded-2xl p-3.5 border border-white/10">
+        <div>
+          <div class="text-[11px] text-amber-200/70">도달 회차</div>
+          <div id="go-round" class="font-display text-xl text-amber-300 mt-0.5">1회차</div>
+        </div>
+        <div class="border-x border-white/10">
+          <div class="text-[11px] text-emerald-200/70">획득 점수</div>
+          <div id="go-score" class="font-display text-xl text-white mt-0.5">0 / 10점</div>
+        </div>
+        <div>
+          <div class="text-[11px] text-rose-200/70">도달 단계</div>
+          <div id="go-stage" class="font-display text-xl text-rose-300 mt-0.5">1단</div>
+        </div>
+      </div>
+
+      <button id="gameover-restart-btn" type="button"
+        class="btn-primary w-full py-3.5 rounded-2xl font-display text-lg text-stone-950">
+        다시 하기
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 5: RULES & PROBABILITY TABLE MODAL
+       ======================================================================== -->
+  <div id="rules-modal" class="modal-backdrop modal-hidden">
+    <div class="glass-panel rounded-3xl max-w-md w-full p-5 sm:p-6 border border-amber-300/40 space-y-4 max-h-[88vh] overflow-y-auto custom-scroll">
+      <div class="flex items-center justify-between">
+        <h2 class="font-display text-2xl text-amber-300">📜 규칙 및 확률표</h2>
+        <button id="close-rules-btn" type="button"
+          class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-amber-100 font-bold flex items-center justify-center cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-2 text-xs sm:text-sm text-amber-100/90 leading-relaxed">
+        <p><strong class="text-amber-300">조작 방법:</strong> 오른쪽 <strong>잡기(HOLD)</strong> 버튼(또는 PC <kbd class="px-1.5 py-0.5 rounded bg-white/15">Space</kbd>)을 누르고 있다가 초록색 목표 구간에 들어왔을 때 놓으세요.</p>
+        <p><strong class="text-emerald-300">회차 난이도:</strong> 5단 꺾기 성공 후 목표 점수 미달성 시 다음 회차로 넘어가며, 매 회차 성공 폭이 이전 대비 <strong>10%씩 축소</strong>됩니다. (최소 폭 3%)</p>
+        <p><strong class="text-purple-300">관전 &amp; 채팅:</strong> 온라인 방 코드나 관전 링크로 최대 10명까지 중도 입장해 실시간 관전, 이모지 응원, 채팅을 함께 즐길 수 있습니다.</p>
+      </div>
+
+      <div class="bg-black/35 rounded-2xl p-3 border border-white/10">
+        <div class="text-xs font-bold text-amber-300 mb-2">단계별 1회차 성공 구간</div>
+        <div class="grid grid-cols-2 gap-1.5 text-[11px] sm:text-xs">
+          <div class="bg-white/5 rounded-lg px-2.5 py-1.5 flex justify-between"><span>1단 (하나 ×4)</span><strong class="text-emerald-300">45~95 (폭 50)</strong></div>
+          <div class="bg-white/5 rounded-lg px-2.5 py-1.5 flex justify-between"><span>2단 (둘 ×2)</span><strong class="text-emerald-300">55~95 (폭 40)</strong></div>
+          <div class="bg-white/5 rounded-lg px-2.5 py-1.5 flex justify-between"><span>3단 (셋 후 하나)</span><strong class="text-emerald-300">65~95 (폭 30)</strong></div>
+          <div class="bg-white/5 rounded-lg px-2.5 py-1.5 flex justify-between"><span>4단 (넷 잡기)</span><strong class="text-emerald-300">75~95 (폭 20)</strong></div>
+          <div class="col-span-2 bg-pink-500/15 border border-pink-400/30 rounded-lg px-2.5 py-1.5 flex justify-between"><span>5단 (꺾기)</span><strong class="text-pink-300">80~90 (폭 10)</strong></div>
+        </div>
+      </div>
+
+      <div class="bg-black/35 rounded-2xl p-3 border border-white/10">
+        <div class="text-xs font-bold text-pink-300 mb-2">5단 손등 올리기 확률 (획득 점수)</div>
+        <div class="grid grid-cols-3 gap-1.5 text-center text-[11px] sm:text-xs">
+          <div class="bg-rose-500/15 rounded-lg py-1.5"><div class="text-rose-300 font-bold">0개 (실패)</div><div>5%</div></div>
+          <div class="bg-white/5 rounded-lg py-1.5"><div class="text-amber-200 font-bold">1개 (+1점)</div><div>10%</div></div>
+          <div class="bg-white/5 rounded-lg py-1.5"><div class="text-amber-200 font-bold">2개 (+2점)</div><div>20%</div></div>
+          <div class="bg-emerald-500/15 rounded-lg py-1.5"><div class="text-emerald-200 font-bold">3개 (+3점)</div><div>25%</div></div>
+          <div class="bg-emerald-500/15 rounded-lg py-1.5"><div class="text-emerald-300 font-bold">4개 (+4점)</div><div>20%</div></div>
+          <div class="bg-amber-500/20 rounded-lg py-1.5"><div class="text-amber-300 font-bold">5개 (+5점)</div><div>20%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 6: ONLINE DISCONNECT MODAL
+       ======================================================================== -->
+  <div id="disconnect-modal" class="modal-backdrop modal-hidden">
+    <div class="glass-panel rounded-3xl max-w-sm w-full p-6 border-2 border-rose-500/60 text-center space-y-4">
+      <div class="text-4xl">📡</div>
+      <div>
+        <h2 class="font-display text-2xl text-rose-300">연결이 끊어졌습니다</h2>
+        <p id="disconnect-reason" class="text-xs sm:text-sm text-amber-100/85 mt-1">
+          상대방이 나갔거나 네트워크 연결이 불안정합니다.
+        </p>
+      </div>
+      <button id="disconnect-menu-btn" type="button"
+        class="btn-primary w-full py-3 rounded-2xl font-display text-lg text-stone-950">
+        메뉴로 돌아가기
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* --------------------------------------------------------------------------
+       * 1. GAME CONFIGURATION & CONSTANTS
+       * -------------------------------------------------------------------------- */
+      const MAX_RETRIES = 3;
+      const MAX_SPECTATORS = 10;
+      const MAX_CHAT_MESSAGES = 50;
+      const PEER_PREFIX = 'gonggi3d-room-';
+      const PEER_CONFIG = {
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+          ]
+        }
+      };
+
+      const STAGE_CONFIG = {
+        1: {
+          name: '1단 · 하나 집기',
+          shortName: '1단',
+          baseWidth: 50,
+          steps: [
+            { pick: 1, label: '1/4회 · 1개 집기' },
+            { pick: 1, label: '2/4회 · 1개 집기' },
+            { pick: 1, label: '3/4회 · 1개 집기' },
+            { pick: 1, label: '4/4회 · 1개 집기' }
+          ]
+        },
+        2: {
+          name: '2단 · 둘 집기',
+          shortName: '2단',
+          baseWidth: 40,
+          steps: [
+            { pick: 2, label: '1/2회 · 2개 집기' },
+            { pick: 2, label: '2/2회 · 2개 집기' }
+          ]
+        },
+        3: {
+          name: '3단 · 셋 집기',
+          shortName: '3단',
+          baseWidth: 30,
+          steps: [
+            { pick: 3, label: '1/2회 · 3개 집기' },
+            { pick: 1, label: '2/2회 · 남은 1개 집기' }
+          ]
+        },
+        4: {
+          name: '4단 · 넷 집기',
+          shortName: '4단',
+          baseWidth: 20,
+          steps: [
+            { type: 'place4', pick: 0, label: '1/2회 · 4개 바닥에 놓기' },
+            { type: 'sweep4', pick: 4, label: '2/2회 · 4개 쓸어 담기' }
+          ]
+        },
+        5: {
+          name: '5단 · 꺾기',
+          shortName: '5단 꺾기',
+          baseWidth: 10,
+          steps: [
+            { type: 'flip_roll', label: '1/2단계 · 손등에 올리기 (확률)' },
+            { type: 'snatch', label: '2/2단계 · 꺾어 잡기' }
+          ]
+        }
+      };
+
+      // Stage 5 Back-of-hand probabilities: 0(5%), 1(10%), 2(20%), 3(25%), 4(20%), 5(20%)
+      const STAGE5_PROBS = [
+        { count: 0, weight: 5 },
+        { count: 1, weight: 10 },
+        { count: 2, weight: 20 },
+        { count: 3, weight: 25 },
+        { count: 4, weight: 20 },
+        { count: 5, weight: 20 }
+      ];
+
+      const STONE_COLORS = [
+        { hex: 0xef4444, emissive: 0x3b0707 }, // Red
+        { hex: 0xfacc15, emissive: 0x3b2c03 }, // Yellow
+        { hex: 0x22c55e, emissive: 0x052e16 }, // Green
+        { hex: 0x3b82f6, emissive: 0x0c1e4a }, // Blue
+        { hex: 0xa855f7, emissive: 0x2e0b4f }  // Purple
+      ];
+
+      const SPEED_PRESETS = [
+        { label: '느림', rate: 82 },
+        { label: '보통', rate: 128 },
+        { label: '빠름', rate: 180 }
+      ];
+
+      function getTargetZone(stageNum, roundNum) {
+        const base = STAGE_CONFIG[stageNum].baseWidth;
+        const rawWidth = Math.max(3, base * Math.pow(0.9, roundNum - 1));
+        const width = Math.round(rawWidth * 10) / 10;
+        const max = Math.min(95, Math.round((85 + width / 2) * 10) / 10);
+        const min = Math.max(0, Math.round((max - width) * 10) / 10);
+        return { min, max, width };
+      }
+
+      /* --------------------------------------------------------------------------
+       * 2. WEB AUDIO API SOUND MANAGER (INCLUDING CHAT PING)
+       * -------------------------------------------------------------------------- */
+      class SoundManager {
+        constructor() {
+          this.enabled = true;
+          this.ctx = null;
+        }
+        ensureContext() {
+          if (!this.enabled) return null;
+          try {
+            if (!this.ctx) {
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) this.ctx = new AudioCtx();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+              this.ctx.resume().catch(() => {});
+            }
+            return this.ctx;
+          } catch (e) {
+            return null;
+          }
+        }
+        playClack(volume = 0.22, pitchShift = 1.0) {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime((900 + Math.random() * 220) * pitchShift, now);
+            osc.frequency.exponentialRampToValueAtTime(260 * pitchShift, now + 0.045);
+            gain.gain.setValueAtTime(volume, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.06);
+          } catch (e) {}
+        }
+        playWhoosh() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const bufferSize = Math.floor(ctx.sampleRate * 0.16);
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+              data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+            }
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(420, now);
+            filter.frequency.exponentialRampToValueAtTime(1400, now + 0.15);
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(0.16, now + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            noise.start(now);
+          } catch (e) {}
+        }
+        playCatch(combo = 0) {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const mult = Math.pow(1.06, combo);
+            [523.25, 659.25, 783.99].forEach((freq, idx) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(freq * mult, now + idx * 0.045);
+              gain.gain.setValueAtTime(0.001, now + idx * 0.045);
+              gain.gain.linearRampToValueAtTime(0.15, now + idx * 0.045 + 0.015);
+              gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.045 + 0.22);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(now + idx * 0.045);
+              osc.stop(now + idx * 0.045 + 0.24);
+            });
+          } catch (e) {}
+        }
+        playFail() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(210, now);
+            osc.frequency.exponentialRampToValueAtTime(75, now + 0.3);
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 460;
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.34);
+          } catch (e) {}
+        }
+        playVictory() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5].forEach((freq, i) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'triangle';
+              const t = now + i * 0.075;
+              osc.frequency.setValueAtTime(freq, t);
+              gain.gain.setValueAtTime(0.001, t);
+              gain.gain.linearRampToValueAtTime(0.2, t + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(t);
+              osc.stop(t + 0.45);
+            });
+          } catch (e) {}
+        }
+        playTurnSwitch() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            [440, 587.33].forEach((freq, idx) => {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'sine';
+              const t = now + idx * 0.08;
+              osc.frequency.setValueAtTime(freq, t);
+              gain.gain.setValueAtTime(0.001, t);
+              gain.gain.linearRampToValueAtTime(0.14, t + 0.015);
+              gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(t);
+              osc.stop(t + 0.2);
+            });
+          } catch (e) {}
+        }
+        playEmoji() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(660, now);
+            osc.frequency.exponentialRampToValueAtTime(990, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.13);
+          } catch (e) {}
+        }
+        playChatPing() {
+          const ctx = this.ensureContext();
+          if (!ctx) return;
+          try {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.setValueAtTime(1174.66, now + 0.055);
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.15);
+          } catch (e) {}
+        }
+      }
+
+      const sound = new SoundManager();
+
+      /* --------------------------------------------------------------------------
+       * 3. THREE.JS 3D SCENE
+       * -------------------------------------------------------------------------- */
+      let scene = null, camera = null, renderer = null;
+      let stones = [], particles = [];
+      let handGroup = null, handMeshParts = {};
+      let threeReady = false;
+
+      const camState = {
+        pos: null, targetPos: null, lookAt: null, targetLookAt: null,
+        orbitYaw: 0, orbitPitch: 0, isDragging: false, lastX: 0, lastY: 0
+      };
+
+      const handState = {
+        pos: null, targetPos: null, rot: null, targetRot: null,
+        fingerCurl: 0.4, targetFingerCurl: 0.4, tremble: 0
+      };
+
+      let PALM_OFFSETS = [];
+      let BACK_OFFSETS = [];
+
+      function createWoodFloorTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#8b5a2b';
+        ctx.fillRect(0, 0, 512, 512);
+        const plankH = 64;
+        const tones = ['#946234', '#86562a', '#9e6b3b', '#7d4f25', '#8f5d2f'];
+        for (let i = 0; i < 8; i++) {
+          ctx.fillStyle = tones[i % tones.length];
+          ctx.fillRect(0, i * plankH, 512, plankH - 2);
+          ctx.fillStyle = 'rgba(38, 20, 8, 0.5)';
+          ctx.fillRect(0, (i + 1) * plankH - 2, 512, 2);
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(4, 4);
+        return tex;
+      }
+
+      function createWovenMatTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#d9b97e';
+        ctx.fillRect(0, 0, 512, 512);
+        for (let y = 0; y < 512; y += 8) {
+          ctx.fillStyle = y % 16 === 0 ? 'rgba(181, 137, 68, 0.28)' : 'rgba(255, 244, 214, 0.25)';
+          ctx.fillRect(0, y, 512, 4);
+        }
+        ctx.strokeStyle = '#9a3412';
+        ctx.lineWidth = 18;
+        ctx.beginPath();
+        ctx.arc(256, 256, 232, 0, Math.PI * 2);
+        ctx.stroke();
+        return new THREE.CanvasTexture(canvas);
+      }
+
+      function initThreeScene() {
+        try {
+          if (typeof THREE === 'undefined') return;
+          const container = document.getElementById('canvas-container');
+          if (!container) return;
+
+          camState.pos = new THREE.Vector3(0, 5.2, 5.9);
+          camState.targetPos = new THREE.Vector3(0, 5.2, 5.9);
+          camState.lookAt = new THREE.Vector3(0.25, 0.55, 0.15);
+          camState.targetLookAt = new THREE.Vector3(0.25, 0.55, 0.15);
+
+          handState.pos = new THREE.Vector3(0.2, 1.35, 2.05);
+          handState.targetPos = new THREE.Vector3(0.2, 1.35, 2.05);
+          handState.rot = new THREE.Euler(-0.08, 0, 0);
+          handState.targetRot = new THREE.Euler(-0.08, 0, 0);
+
+          PALM_OFFSETS = [
+            new THREE.Vector3(-0.28, 0.26, -0.18),
+            new THREE.Vector3(0.28, 0.26, -0.18),
+            new THREE.Vector3(0.0, 0.28, 0.05),
+            new THREE.Vector3(-0.24, 0.26, 0.24),
+            new THREE.Vector3(0.24, 0.26, 0.24)
+          ];
+          BACK_OFFSETS = [
+            new THREE.Vector3(-0.32, -0.28, -0.18),
+            new THREE.Vector3(0.0, -0.28, -0.26),
+            new THREE.Vector3(0.32, -0.28, -0.18),
+            new THREE.Vector3(-0.18, -0.28, 0.14),
+            new THREE.Vector3(0.18, -0.28, 0.14)
+          ];
+
+          scene = new THREE.Scene();
+          scene.background = new THREE.Color(0x261911);
+          scene.fog = new THREE.FogExp2(0x261911, 0.04);
+
+          const w = container.clientWidth || window.innerWidth;
+          const h = container.clientHeight || window.innerHeight;
+          camera = new THREE.PerspectiveCamera(44, w / h, 0.1, 60);
+          camera.position.copy(camState.pos);
+          camera.lookAt(camState.lookAt);
+
+          renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+          renderer.setSize(w, h);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+          renderer.shadowMap.enabled = true;
+          renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+          container.appendChild(renderer.domElement);
+
+          // Lights
+          scene.add(new THREE.HemisphereLight(0xfff3db, 0x4a2f1d, 0.78));
+          const keyLight = new THREE.DirectionalLight(0xffe6bd, 1.15);
+          keyLight.position.set(4.5, 9.5, 5.5);
+          keyLight.castShadow = true;
+          keyLight.shadow.mapSize.width = 1024;
+          keyLight.shadow.mapSize.height = 1024;
+          scene.add(keyLight);
+
+          // Ondol Floor
+          const floor = new THREE.Mesh(
+            new THREE.PlaneGeometry(28, 28),
+            new THREE.MeshStandardMaterial({ map: createWoodFloorTexture(), roughness: 0.65 })
+          );
+          floor.rotation.x = -Math.PI / 2;
+          floor.receiveShadow = true;
+          scene.add(floor);
+
+          // Traditional Woven Mat
+          const matGeo = new THREE.CylinderGeometry(3.55, 3.6, 0.06, 48);
+          const matSide = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.85 });
+          const matTop = new THREE.MeshStandardMaterial({ map: createWovenMatTexture(), roughness: 0.82 });
+          const matMesh = new THREE.Mesh(matGeo, [matSide, matTop, matSide]);
+          matMesh.position.y = 0.03;
+          matMesh.receiveShadow = true;
+          scene.add(matMesh);
+
+          // 5 Faceted Gonggi Stones
+          const profile = [
+            new THREE.Vector2(0.0, -0.22),
+            new THREE.Vector2(0.20, -0.22),
+            new THREE.Vector2(0.27, -0.14),
+            new THREE.Vector2(0.28, 0.08),
+            new THREE.Vector2(0.22, 0.20),
+            new THREE.Vector2(0.11, 0.24),
+            new THREE.Vector2(0.0, 0.24)
+          ];
+          const stoneGeo = new THREE.LatheGeometry(profile, 7);
+          stoneGeo.computeVertexNormals();
+
+          STONE_COLORS.forEach((col, i) => {
+            const group = new THREE.Group();
+            const body = new THREE.Mesh(
+              stoneGeo,
+              new THREE.MeshStandardMaterial({
+                color: col.hex,
+                emissive: col.emissive,
+                emissiveIntensity: 0.2,
+                roughness: 0.22,
+                metalness: 0.1
+              })
+            );
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+            scene.add(group);
+            stones.push({
+              id: i,
+              mesh: group,
+              state: 'floor',
+              pos: new THREE.Vector3((i - 2) * 0.78, 0.28, -0.1),
+              vel: new THREE.Vector3(),
+              rotVel: new THREE.Vector3(),
+              arc: null,
+              handOffset: new THREE.Vector3()
+            });
+          });
+
+          // Stylized 3D Hand
+          handGroup = new THREE.Group();
+          const skinMat = new THREE.MeshStandardMaterial({ color: 0xf4c7a3, roughness: 0.55 });
+          const sleeveMat = new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.78 });
+
+          const palm = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.24, 1.15), skinMat);
+          palm.castShadow = true;
+          handGroup.add(palm);
+
+          const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 0.65, 16), skinMat);
+          wrist.rotation.x = Math.PI / 2;
+          wrist.position.set(0, -0.02, 0.82);
+          handGroup.add(wrist);
+
+          const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.47, 0.54, 1.2, 16), sleeveMat);
+          sleeve.rotation.x = Math.PI / 2;
+          sleeve.position.set(0, -0.02, 1.55);
+          handGroup.add(sleeve);
+
+          const fingerPivots = [];
+          const fingerLengths = [0.68, 0.78, 0.74, 0.58];
+          const fingerX = [-0.42, -0.14, 0.14, 0.42];
+          for (let i = 0; i < 4; i++) {
+            const pivot = new THREE.Group();
+            pivot.position.set(fingerX[i], 0.0, -0.56);
+            const len = fingerLengths[i];
+            const fMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, len), skinMat);
+            fMesh.position.set(0, 0, -len / 2);
+            fMesh.castShadow = true;
+            pivot.add(fMesh);
+            handGroup.add(pivot);
+            fingerPivots.push(pivot);
+          }
+
+          const thumbPivot = new THREE.Group();
+          thumbPivot.position.set(-0.62, 0.0, 0.12);
+          thumbPivot.rotation.y = 0.55;
+          const thumbMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.19, 0.58), skinMat);
+          thumbMesh.position.set(0, 0, -0.28);
+          thumbPivot.add(thumbMesh);
+          handGroup.add(thumbPivot);
+
+          handMeshParts = { fingerPivots, thumbPivot };
+          handGroup.position.copy(handState.pos);
+          scene.add(handGroup);
+
+          // Gentle Camera Orbit on Canvas Background Drag
+          const dom = renderer.domElement;
+          dom.addEventListener('pointerdown', (e) => {
+            camState.isDragging = true;
+            camState.lastX = e.clientX;
+            camState.lastY = e.clientY;
+          });
+          window.addEventListener('pointermove', (e) => {
+            if (!camState.isDragging) return;
+            const dx = e.clientX - camState.lastX;
+            const dy = e.clientY - camState.lastY;
+            camState.lastX = e.clientX;
+            camState.lastY = e.clientY;
+            camState.orbitYaw = THREE.MathUtils.clamp(camState.orbitYaw - dx * 0.005, -0.65, 0.65);
+            camState.orbitPitch = THREE.MathUtils.clamp(camState.orbitPitch + dy * 0.004, -0.25, 0.35);
+          });
+          window.addEventListener('pointerup', () => { camState.isDragging = false; });
+          window.addEventListener('pointercancel', () => { camState.isDragging = false; });
+
+          window.addEventListener('resize', () => {
+            if (!renderer || !camera) return;
+            const nw = container.clientWidth || window.innerWidth;
+            const nh = container.clientHeight || window.innerHeight;
+            camera.aspect = nw / nh;
+            camera.updateProjectionMatrix();
+            renderer.setSize(nw, nh);
+          });
+
+          threeReady = true;
+        } catch (err) {
+          console.error('Three.js init error:', err);
+          threeReady = false;
+        }
+      }
+
+      function spawnParticles(origin, count = 20, isVictory = false) {
+        if (!threeReady || !scene) return;
+        const geo = new THREE.OctahedronGeometry(isVictory ? 0.11 : 0.075, 0);
+        const palette = [0xfef08a, 0x34d399, 0xf472b6, 0x60a5fa, 0xfb923c, 0xffffff];
+        for (let i = 0; i < count; i++) {
+          const mat = new THREE.MeshBasicMaterial({ color: palette[i % palette.length], transparent: true, opacity: 1 });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.copy(origin);
+          scene.add(mesh);
+          const angle = Math.random() * Math.PI * 2;
+          const speed = (isVictory ? 2.4 : 1.2) + Math.random() * 2.5;
+          particles.push({
+            mesh,
+            vel: new THREE.Vector3(Math.cos(angle) * speed, 2.2 + Math.random() * 2.8, Math.sin(angle) * speed),
+            rotVel: new THREE.Vector3(Math.random() * 8, Math.random() * 8, Math.random() * 8),
+            life: 0,
+            maxLife: isVictory ? 1.5 : 0.7
+          });
+        }
+      }
+
+      function setCameraFocus(mode) {
+        if (!threeReady) return;
+        if (mode === 'overview') {
+          camState.targetPos.set(0, 5.2, 5.9);
+          camState.targetLookAt.set(0.25, 0.55, 0.15);
+        } else if (mode === 'toss') {
+          camState.targetPos.set(0, 5.0, 6.3);
+          camState.targetLookAt.set(0.25, 1.45, 0.0);
+        } else if (mode === 'stage5') {
+          camState.targetPos.set(0, 3.8, 4.5);
+          camState.targetLookAt.set(0.2, 1.25, 0.8);
+        }
+      }
+
+      function setHandPose(pose) {
+        if (!threeReady) return;
+        if (pose === 'ready_palm') {
+          handState.targetPos.set(0.15, 1.35, 2.0);
+          handState.targetRot.set(-0.08, 0, 0);
+          handState.targetFingerCurl = 0.4;
+          handState.tremble = 0;
+        } else if (pose === 'toss_up') {
+          handState.targetPos.set(0.1, 2.05, 1.5);
+          handState.targetRot.set(0.28, 0, 0);
+          handState.targetFingerCurl = 0.1;
+        } else if (pose === 'sweep_floor') {
+          handState.targetPos.set(0.0, 0.52, 0.12);
+          handState.targetRot.set(-0.32, 0, 0);
+          handState.targetFingerCurl = 0.65;
+        } else if (pose === 'catch_palm') {
+          handState.targetPos.set(0.1, 1.45, 1.4);
+          handState.targetRot.set(0.05, 0, 0);
+          handState.targetFingerCurl = 0.85;
+        } else if (pose === 'back_of_hand') {
+          handState.targetPos.set(0.0, 1.35, 1.15);
+          handState.targetRot.set(0.02, 0, Math.PI);
+          handState.targetFingerCurl = 0.02;
+        } else if (pose === 'snatch') {
+          handState.targetPos.set(0.0, 1.75, 1.05);
+          handState.targetRot.set(-0.15, 0, 0);
+          handState.targetFingerCurl = 0.95;
+        }
+      }
+
+      function generateFloorPositions(count) {
+        const positions = [];
+        for (let i = 0; i < count; i++) {
+          const angle = (i / Math.max(count, 1)) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+          const radius = 0.75 + Math.random() * 1.15;
+          positions.push(new THREE.Vector3(Math.cos(angle) * radius - 0.15, 0.28, Math.sin(angle) * radius - 0.25));
+        }
+        return positions;
+      }
+
+      function launchStoneArc(stone, endPos, height, duration, onComplete) {
+        stone.state = 'air_arc';
+        stone.arc = {
+          startPos: stone.pos.clone(),
+          endPos: endPos.clone(),
+          height,
+          elapsed: 0,
+          duration,
+          spin: new THREE.Vector3((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14),
+          onComplete
+        };
+      }
+
+      function dropStoneBounce(stone, impulseX = 0, impulseZ = 0) {
+        stone.state = 'bounce';
+        stone.vel.set(impulseX + (Math.random() - 0.5) * 2.0, 1.2 + Math.random() * 1.2, impulseZ + (Math.random() - 0.5) * 2.0);
+        stone.rotVel.set((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14);
+      }
+
+      /* --------------------------------------------------------------------------
+       * 4. GAME STATE & HOST-HUB NETWORK STATE
+       * -------------------------------------------------------------------------- */
+      const game = {
+        mode: '1p', // '1p' | '2p' | 'online'
+        started: false,
+        targetScore: 10,
+        activeIdx: 0,
+        players: [
+          { name: '플레이어 1', score: 0, round: 1, stage: 1, retriesLeft: MAX_RETRIES },
+          { name: '플레이어 2', score: 0, round: 1, stage: 1, retriesLeft: MAX_RETRIES }
+        ],
+        stepIndex: 0,
+        phase: 'modal',
+        speedIdx: 1,
+        gaugeVal: 0,
+        gaugeDir: 1,
+        isHolding: false,
+        stage5LandedCount: 0,
+        stage5LandedIds: []
+      };
+
+      const net = {
+        peer: null,
+        conn: null,            // For guest & spectator: connection to Host
+        guestConn: null,       // For host: connection to Guest
+        spectators: [],        // For host: [{ conn, name }] (max 10)
+        spectatorCount: 0,
+        role: null,            // 'host' | 'guest' | 'spectator' | null
+        myName: '공기고수',
+        roomCode: '',
+        connected: false,      // True once peer room/link is active
+        matchActive: false,    // True once guest joined and match started
+        myIdx: 0,              // 0 = Host, 1 = Guest, -1 = Spectator
+        lastGaugeSend: 0,
+        myRematch: false,
+        oppRematch: false
+      };
+
+      const chatState = {
+        messages: [],          // { roleTag, sender, text, system }
+        isOpen: window.innerWidth >= 640,
+        unread: 0
+      };
+
+      function curPlayer() {
+        return game.players[game.activeIdx];
+      }
+
+      function isSpectator() {
+        return game.mode === 'online' && net.role === 'spectator';
+      }
+
+      function isMyTurn() {
+        if (game.mode !== 'online') return true;
+        if (net.role === 'spectator') return false;
+        return net.connected && net.matchActive && game.activeIdx === net.myIdx;
+      }
+
+      function myRoleTag() {
+        if (net.role === 'host') return '방장';
+        if (net.role === 'guest') return '도전자';
+        return '관전';
+      }
+
+      // Host sends to Guest + all Spectators (optionally excluding one conn)
+      function broadcastFromHost(payload, excludeConn = null) {
+        if (net.role !== 'host') return;
+        if (net.guestConn && net.guestConn.open && net.guestConn !== excludeConn) {
+          try { net.guestConn.send(payload); } catch (e) {}
+        }
+        for (const sp of net.spectators) {
+          if (sp.conn && sp.conn.open && sp.conn !== excludeConn) {
+            try { sp.conn.send(payload); } catch (e) {}
+          }
+        }
+      }
+
+      // Send packet from current client (Host broadcasts to all; Guest/Spectator sends to Host)
+      function sendNet(payload) {
+        if (game.mode !== 'online') return;
+        if (net.role === 'host') {
+          broadcastFromHost(payload);
+        } else if (net.conn && net.conn.open) {
+          try { net.conn.send(payload); } catch (e) {}
+        }
+      }
+
+      function buildFullSyncState() {
+        return {
+          started: game.started,
+          matchActive: net.matchActive,
+          targetScore: game.targetScore,
+          speedIdx: game.speedIdx,
+          activeIdx: game.activeIdx,
+          players: game.players.map((pl) => ({ ...pl })),
+          stepIndex: game.stepIndex,
+          phase: game.phase,
+          gaugeVal: game.gaugeVal,
+          stage5LandedCount: game.stage5LandedCount,
+          stage5LandedIds: game.stage5LandedIds.slice(),
+          spectatorCount: net.spectatorCount,
+          chatHistory: chatState.messages.slice(-20)
+        };
+      }
+
+      function cleanupNetwork() {
+        net.connected = false;
+        net.matchActive = false;
+        net.role = null;
+        net.roomCode = '';
+        net.spectatorCount = 0;
+        net.myRematch = false;
+        net.oppRematch = false;
+
+        if (net.conn) {
+          try { net.conn.close(); } catch (e) {}
+          net.conn = null;
+        }
+        if (net.guestConn) {
+          try { net.guestConn.close(); } catch (e) {}
+          net.guestConn = null;
+        }
+        for (const sp of net.spectators) {
+          try { if (sp.conn) sp.conn.close(); } catch (e) {}
+        }
+        net.spectators = [];
+        if (net.peer) {
+          try { net.peer.destroy(); } catch (e) {}
+          net.peer = null;
+        }
+      }
+
+      /* --------------------------------------------------------------------------
+       * 5. DOM REFERENCES, MODAL HELPERS & CHAT UI
+       * -------------------------------------------------------------------------- */
+      const elStartModal = document.getElementById('start-modal');
+      const elTurnModal = document.getElementById('turn-modal');
+      const elVictoryModal = document.getElementById('victory-modal');
+      const elGameOverModal = document.getElementById('gameover-modal');
+      const elRulesModal = document.getElementById('rules-modal');
+      const elDisconnectModal = document.getElementById('disconnect-modal');
+
+      const elHud1p = document.getElementById('hud-1p');
+      const elHud2p = document.getElementById('hud-2p');
+      const elRetryPanel = document.getElementById('retry-panel');
+      const elActionBtn = document.getElementById('action-btn');
+      const elActionBtnMain = document.getElementById('action-btn-main');
+      const elActionBtnSub = document.getElementById('action-btn-sub');
+
+      const elGaugeNum = document.getElementById('gauge-num');
+      const elTargetRangeText = document.getElementById('target-range-text');
+      const elTargetWidthText = document.getElementById('target-width-text');
+      const elTargetZoneBar = document.getElementById('target-zone-bar');
+      const elGaugeFill = document.getElementById('gauge-fill');
+      const elGaugeMarker = document.getElementById('gauge-marker');
+
+      function showModal(el) { if (el) el.classList.remove('modal-hidden'); }
+      function hideModal(el) { if (el) el.classList.add('modal-hidden'); }
+      function isAnyModalOpen() {
+        return (
+          !elStartModal.classList.contains('modal-hidden') ||
+          !elTurnModal.classList.contains('modal-hidden') ||
+          !elVictoryModal.classList.contains('modal-hidden') ||
+          !elGameOverModal.classList.contains('modal-hidden') ||
+          !elRulesModal.classList.contains('modal-hidden') ||
+          !elDisconnectModal.classList.contains('modal-hidden')
+        );
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function copyToClipboard(text) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          return ok;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function spawnFloatingEmoji(emoji, senderName) {
+        const layer = document.getElementById('emoji-layer');
+        if (!layer) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'floating-emoji flex flex-col items-center';
+        const leftPct = 28 + Math.random() * 44;
+        wrap.style.left = `${leftPct}%`;
+        wrap.style.bottom = '22%';
+        wrap.innerHTML = `
+          <div class="text-4xl sm:text-5xl drop-shadow-lg">${escapeHtml(emoji)}</div>
+          <div class="text-[10px] font-bold bg-black/70 text-amber-200 px-2 py-0.5 rounded-full mt-0.5 whitespace-nowrap">${escapeHtml(senderName)}</div>
+        `;
+        layer.appendChild(wrap);
+        sound.playEmoji();
+        setTimeout(() => {
+          if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+        }, 1850);
+      }
+
+      function resetChat() {
+        chatState.messages = [];
+        chatState.unread = 0;
+        renderChatMessages();
+        updateChatPanelVisibility();
+      }
+
+      function appendChatMessage(msg, playPing = true) {
+        chatState.messages.push(msg);
+        if (chatState.messages.length > MAX_CHAT_MESSAGES) {
+          chatState.messages.shift();
+        }
+        if (!chatState.isOpen && !msg.isSelf) {
+          chatState.unread += 1;
+        }
+        if (playPing && !msg.isSelf) {
+          sound.playChatPing();
+        }
+        renderChatMessages();
+        updateChatPanelVisibility();
+      }
+
+      function renderChatMessages() {
+        const container = document.getElementById('chat-messages');
+        if (!container) return;
+        if (chatState.messages.length === 0) {
+          container.innerHTML = '<div class="text-amber-100/50 text-center py-4">응원 메시지나 채팅을 입력해 보세요!</div>';
+          return;
+        }
+        container.innerHTML = chatState.messages.map((m) => {
+          if (m.system) {
+            return `<div class="text-center text-[10px] text-emerald-300/90 bg-emerald-950/40 rounded-lg py-0.5 px-2">${escapeHtml(m.text)}</div>`;
+          }
+          const badgeClass = m.roleTag === '방장'
+            ? 'bg-amber-400/25 text-amber-300 border-amber-400/40'
+            : m.roleTag === '도전자'
+            ? 'bg-sky-400/25 text-sky-300 border-sky-400/40'
+            : 'bg-purple-400/25 text-purple-200 border-purple-400/40';
+          return `
+            <div class="break-words">
+              <span class="inline-block px-1 py-0.2 rounded border text-[9px] font-bold mr-1 ${badgeClass}">[${escapeHtml(m.roleTag)}]</span>
+              <span class="font-bold text-amber-100 mr-1">${escapeHtml(m.sender)}:</span>
+              <span class="text-white/95">${escapeHtml(m.text)}</span>
+            </div>
+          `;
+        }).join('');
+        container.scrollTop = container.scrollHeight;
+      }
+
+      function updateChatPanelVisibility() {
+        const showOnlineSocial = game.mode === 'online' && net.connected;
+        document.getElementById('chat-wrapper').classList.toggle('hidden', !showOnlineSocial);
+        document.getElementById('emoji-bar').classList.toggle('hidden', !showOnlineSocial);
+
+        const chatBox = document.getElementById('chat-box');
+        const toggleBtn = document.getElementById('chat-toggle-btn');
+        const unreadBadge = document.getElementById('chat-unread-badge');
+
+        if (chatState.isOpen) {
+          chatBox.classList.remove('hidden');
+          toggleBtn.classList.add('hidden');
+          chatState.unread = 0;
+        } else {
+          chatBox.classList.add('hidden');
+          toggleBtn.classList.remove('hidden');
+          if (chatState.unread > 0) {
+            unreadBadge.textContent = chatState.unread > 99 ? '99+' : String(chatState.unread);
+            unreadBadge.classList.remove('hidden');
+          } else {
+            unreadBadge.classList.add('hidden');
+          }
+        }
+      }
+
+      let toastTimer = null;
+      function showToast(title, sub = '', style = 'success', duration = 1500) {
+        if (toastTimer) clearTimeout(toastTimer);
+        const toast = document.getElementById('feedback-toast');
+        const box = document.getElementById('feedback-box');
+        document.getElementById('feedback-title').textContent = title;
+        document.getElementById('feedback-sub').textContent = sub;
+        box.className = 'glass-panel rounded-2xl px-6 py-3.5 text-center border-2 max-w-[85vw] toast-pop ' +
+          (style === 'success' ? 'border-emerald-400/80 text-emerald-300' :
+           style === 'fail' ? 'border-rose-400/80 text-rose-300' :
+           'border-amber-300/80 text-amber-200');
+        toast.classList.remove('hidden');
+        toastTimer = setTimeout(() => toast.classList.add('hidden'), duration);
+      }
+
+      function syncSpeedButtonsUI() {
+        document.getElementById('speed-btn').textContent = `속도: ${SPEED_PRESETS[game.speedIdx].label}`;
+        document.querySelectorAll('.modal-speed-btn').forEach((btn) => {
+          const active = parseInt(btn.dataset.speedOpt, 10) === game.speedIdx;
+          btn.className = active
+            ? 'modal-speed-btn px-3 py-1 rounded-xl text-xs font-bold bg-amber-400 text-stone-950 border border-amber-200 cursor-pointer transition'
+            : 'modal-speed-btn px-3 py-1 rounded-xl text-xs font-bold bg-white/10 border border-white/15 text-amber-100 cursor-pointer transition';
+        });
+      }
+
+      function updateHUD() {
+        const p = curPlayer();
+        const cfg = STAGE_CONFIG[p.stage];
+        const step = cfg.steps[game.stepIndex] || cfg.steps[0];
+        const zone = getTargetZone(p.stage, p.round);
+        const scalePct = Math.round(Math.pow(0.9, p.round - 1) * 100);
+        const myTurnNow = isMyTurn();
+
+        if (game.mode === '1p') {
+          elHud1p.classList.remove('hidden');
+          elHud2p.classList.add('hidden');
+          elHud2p.classList.remove('flex');
+
+          document.getElementById('score-val-1p').textContent = p.score;
+          document.getElementById('target-score-1p').textContent = game.targetScore;
+          const pct = Math.min(100, Math.round((p.score / Math.max(1, game.targetScore)) * 100));
+          document.getElementById('score-progress-1p').style.width = `${pct}%`;
+          document.getElementById('round-badge-1p').textContent = `${p.round}회차 (${scalePct}%)`;
+
+          let heartsHtml = '';
+          for (let i = 0; i < MAX_RETRIES; i++) {
+            heartsHtml += `<span class="text-xs sm:text-sm ${i < p.retriesLeft ? 'text-rose-400' : 'text-stone-600 grayscale opacity-45'}">❤️</span>`;
+          }
+          document.getElementById('retry-hearts').innerHTML = heartsHtml;
+          document.getElementById('retry-text').textContent = `기회 ${p.retriesLeft}/${MAX_RETRIES}`;
+        } else {
+          elHud1p.classList.add('hidden');
+          elHud2p.classList.remove('hidden');
+          elHud2p.classList.add('flex');
+
+          const p1 = game.players[0];
+          const p2 = game.players[1];
+          document.getElementById('p1-name-hud').textContent = p1.name;
+          document.getElementById('p1-score-hud').textContent = p1.score;
+          document.getElementById('p1-stage-hud').textContent = `${p1.round}회차 · ${p1.stage}단`;
+
+          document.getElementById('p2-name-hud').textContent = p2.name;
+          document.getElementById('p2-score-hud').textContent = p2.score;
+          document.getElementById('p2-stage-hud').textContent = `${p2.round}회차 · ${p2.stage}단`;
+
+          document.querySelectorAll('.target-score-2p').forEach((el) => { el.textContent = game.targetScore; });
+
+          document.getElementById('p1-card').classList.toggle('player-card-active', game.activeIdx === 0);
+          document.getElementById('p2-card').classList.toggle('player-card-active', game.activeIdx === 1);
+          document.getElementById('p1-turn-dot').style.opacity = game.activeIdx === 0 ? '1' : '0';
+          document.getElementById('p2-turn-dot').style.opacity = game.activeIdx === 1 ? '1' : '0';
+
+          const onlineRow = document.getElementById('online-status-row');
+          const netPill = document.getElementById('net-status-pill');
+          const specPill = document.getElementById('spectator-count-pill');
+          const turnBanner = document.getElementById('online-turn-banner');
+          if (game.mode === 'online') {
+            onlineRow.classList.remove('hidden');
+            netPill.textContent = net.connected ? `🟢 방 ${net.roomCode}` : '🔴 연결 끊김';
+            netPill.className = net.connected
+              ? 'glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-emerald-300 border border-emerald-400/40'
+              : 'glass-panel rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold text-rose-300 border border-rose-400/40';
+            specPill.textContent = `👀 ${net.spectatorCount}명`;
+
+            const hostWaitingSpec = document.getElementById('host-waiting-spec-count');
+            if (hostWaitingSpec) hostWaitingSpec.textContent = `👀 관전자 ${net.spectatorCount}명`;
+
+            if (isSpectator()) {
+              turnBanner.textContent = net.matchActive
+                ? `👀 관전 중 (현재 ${p.name}님 차례)`
+                : '👀 관전 대기 중 (도전자 입장 대기)';
+              turnBanner.className = 'glass-panel rounded-full px-3 py-0.5 text-[10px] sm:text-[11px] font-bold text-purple-200 border border-purple-400/55 bg-purple-500/20';
+            } else if (myTurnNow) {
+              turnBanner.textContent = '🎯 내 차례!';
+              turnBanner.className = 'glass-panel rounded-full px-3 py-0.5 text-[10px] sm:text-[11px] font-bold text-amber-200 border border-amber-300/60 bg-amber-500/20';
+            } else {
+              turnBanner.textContent = `👀 ${p.name}님 플레이 관전 중...`;
+              turnBanner.className = 'glass-panel rounded-full px-3 py-0.5 text-[10px] sm:text-[11px] font-bold text-sky-200 border border-sky-400/40';
+            }
+          } else {
+            onlineRow.classList.add('hidden');
+          }
+        }
+
+        updateChatPanelVisibility();
+
+        const prefix = game.mode !== '1p' ? `[${p.name}] ` : '';
+        document.getElementById('stage-badge-lg').textContent = `${prefix}${cfg.name}`;
+        document.getElementById('progress-label-lg').textContent = step.label;
+        document.getElementById('stage-badge-sm').textContent = `${prefix}${cfg.name}`;
+        document.getElementById('progress-label-sm').textContent = step.label;
+
+        elTargetRangeText.textContent = `${zone.min}~${zone.max}`;
+        elTargetWidthText.textContent = `폭 ${zone.width}%`;
+        elTargetZoneBar.style.bottom = `${zone.min}%`;
+        elTargetZoneBar.style.height = `${zone.width}%`;
+
+        document.querySelectorAll('.step-pill').forEach((pill) => {
+          const s = parseInt(pill.dataset.step, 10);
+          if (s === p.stage) {
+            pill.className = 'step-pill px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-400 text-stone-950 shadow scale-105 transition';
+          } else if (s < p.stage) {
+            pill.className = 'step-pill px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 transition';
+          } else {
+            pill.className = 'step-pill px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-stone-900/75 text-stone-400 border border-white/10 transition';
+          }
+        });
+
+        elRetryPanel.classList.toggle('hidden', game.phase !== 'retry_wait');
+        if (game.phase === 'retry_wait') {
+          document.getElementById('retry-stage-btn').textContent = `재시도 (남은 기회 ${p.retriesLeft}회)`;
+        }
+
+        // Hide HOLD button completely for Spectators
+        elActionBtn.classList.toggle('hidden', isSpectator());
+        elActionBtn.classList.remove('stage5-roll', 'holding');
+        if (!isSpectator()) {
+          if (game.mode === 'online' && !myTurnNow) {
+            elActionBtn.disabled = true;
+            elActionBtnMain.textContent = '관전';
+            elActionBtnSub.textContent = '상대 차례';
+          } else if (game.phase === 'stage5_roll') {
+            elActionBtn.disabled = false;
+            elActionBtn.classList.add('stage5-roll');
+            elActionBtnMain.textContent = '손등';
+            elActionBtnSub.textContent = '확률 던지기';
+          } else if (game.phase === 'charging') {
+            elActionBtn.disabled = false;
+            elActionBtn.classList.add('holding');
+            elActionBtnMain.textContent = '놓기!';
+            elActionBtnSub.textContent = 'RELEASE';
+          } else if (game.phase === 'ready') {
+            elActionBtn.disabled = false;
+            elActionBtnMain.textContent = p.stage === 5 ? '꺾기' : '잡기';
+            elActionBtnSub.textContent = 'HOLD';
+          } else {
+            elActionBtn.disabled = true;
+            elActionBtnMain.textContent = '대기';
+            elActionBtnSub.textContent = '...';
+          }
+        }
+      }
+
+      function renderGaugeUI() {
+        const p = curPlayer();
+        const val = Math.round(game.gaugeVal * 10) / 10;
+        const zone = getTargetZone(p.stage, p.round);
+        const inZone = val >= zone.min && val <= zone.max;
+
+        elGaugeNum.textContent = Math.round(val);
+        elGaugeNum.style.color = inZone ? '#34d399' : '#ffffff';
+        elGaugeFill.style.height = `${game.gaugeVal}%`;
+        elGaugeMarker.style.bottom = `${game.gaugeVal}%`;
+        elGaugeMarker.style.backgroundColor = inZone ? '#6ee7b7' : '#ffffff';
+      }
+
+      /* --------------------------------------------------------------------------
+       * 6. CORE GAMEPLAY FLOW & PEERJS HOST-HUB MULTIPLAYER + SPECTATOR
+       * -------------------------------------------------------------------------- */
+      function startNewGame() {
+        cleanupNetwork();
+        resetChat();
+        const targetVal = parseInt(document.getElementById('custom-target-input').value, 10);
+        game.targetScore = Math.max(1, Math.min(999, isNaN(targetVal) ? 10 : targetVal));
+        game.started = true;
+        game.activeIdx = 0;
+
+        const p1Name = (document.getElementById('p1-name-input').value || '').trim() || '플레이어 1';
+        const p2Name = (document.getElementById('p2-name-input').value || '').trim() || '플레이어 2';
+
+        game.players = [
+          { name: p1Name, score: 0, round: 1, stage: 1, retriesLeft: MAX_RETRIES },
+          { name: p2Name, score: 0, round: 1, stage: 1, retriesLeft: MAX_RETRIES }
+        ];
+
+        hideModal(elStartModal);
+        hideModal(elTurnModal);
+        hideModal(elVictoryModal);
+        hideModal(elGameOverModal);
+        hideModal(elDisconnectModal);
+        elRetryPanel.classList.add('hidden');
+
+        setupStage(1);
+        const startMsg = game.mode === '2p'
+          ? `${p1Name} vs ${p2Name} 대결 시작!`
+          : `목표 ${game.targetScore}점 도전!`;
+        showToast(startMsg, `${curPlayer().name} · 1회차 1단 시작`, 'info', 1500);
+      }
+
+      function startOnlineMatch(config) {
+        game.mode = 'online';
+        game.started = true;
+        net.matchActive = true;
+        game.targetScore = config.targetScore;
+        game.speedIdx = config.speedIdx;
+        game.activeIdx = config.activeIdx || 0;
+        game.players = config.players.map((pl) => ({ ...pl }));
+        if (typeof config.spectatorCount === 'number') {
+          net.spectatorCount = config.spectatorCount;
+        }
+        net.myRematch = false;
+        net.oppRematch = false;
+
+        syncSpeedButtonsUI();
+        document.getElementById('rematch-status-text').classList.add('hidden');
+
+        hideModal(elStartModal);
+        hideModal(elTurnModal);
+        hideModal(elVictoryModal);
+        hideModal(elGameOverModal);
+        hideModal(elDisconnectModal);
+        elRetryPanel.classList.add('hidden');
+
+        setupStage(1);
+        sound.playTurnSwitch();
+        const subMsg = isSpectator()
+          ? `👀 관전 중 · ${curPlayer().name}님 차례로 시작합니다!`
+          : isMyTurn()
+          ? '🎯 내 차례부터 시작합니다!'
+          : `👀 ${curPlayer().name}님 차례입니다!`;
+        showToast(`${game.players[0].name} vs ${game.players[1].name}`, subMsg, 'info', 1800);
+      }
+
+      function applySpectatorMidGameSync(st) {
+        game.mode = 'online';
+        game.started = Boolean(st.started);
+        net.matchActive = Boolean(st.matchActive);
+        game.targetScore = st.targetScore || 10;
+        game.speedIdx = st.speedIdx || 1;
+        game.activeIdx = st.activeIdx || 0;
+        game.players = (st.players || game.players).map((pl) => ({ ...pl }));
+        game.stepIndex = st.stepIndex || 0;
+        game.phase = st.phase || 'ready';
+        game.gaugeVal = st.gaugeVal || 0;
+        game.stage5LandedCount = st.stage5LandedCount || 0;
+        game.stage5LandedIds = (st.stage5LandedIds || []).slice();
+        net.spectatorCount = st.spectatorCount || 1;
+
+        if (Array.isArray(st.chatHistory)) {
+          chatState.messages = st.chatHistory.slice(-MAX_CHAT_MESSAGES);
+          renderChatMessages();
+        }
+
+        syncSpeedButtonsUI();
+        hideModal(elStartModal);
+        hideModal(elVictoryModal);
+        hideModal(elGameOverModal);
+        hideModal(elDisconnectModal);
+
+        // Immediately arrange 3D scene to reflect current stage without delay
+        if (threeReady) {
+          const p = curPlayer();
+          if (p.stage <= 3) {
+            setCameraFocus('overview');
+            setHandPose('ready_palm');
+            const pts = generateFloorPositions(4);
+            stones.forEach((stone, idx) => {
+              if (idx === 0) {
+                stone.state = 'hand_palm';
+                stone.handOffset.copy(PALM_OFFSETS[2]);
+              } else {
+                stone.state = 'floor';
+                stone.pos.copy(pts[idx - 1]);
+                stone.mesh.position.copy(stone.pos);
+              }
+            });
+          } else if (p.stage === 4) {
+            setCameraFocus('overview');
+            setHandPose('ready_palm');
+            stones.forEach((stone, idx) => {
+              stone.state = 'hand_palm';
+              stone.handOffset.copy(PALM_OFFSETS[idx]);
+            });
+          } else {
+            setCameraFocus('stage5');
+            setHandPose(game.stepIndex === 1 ? 'back_of_hand' : 'ready_palm');
+            stones.forEach((stone, idx) => {
+              if (game.stepIndex === 1 && game.stage5LandedIds.includes(stone.id)) {
+                const slot = game.stage5LandedIds.indexOf(stone.id);
+                stone.state = 'hand_back';
+                stone.handOffset.copy(BACK_OFFSETS[slot]);
+              } else {
+                stone.state = 'hand_palm';
+                stone.handOffset.copy(PALM_OFFSETS[idx]);
+              }
+            });
+          }
+        }
+
+        renderGaugeUI();
+        updateHUD();
+        showToast(
+          '👀 관전 입장 완료!',
+          net.matchActive ? `${curPlayer().name}님 차례를 실시간으로 관전합니다` : '도전자 입장을 기다리고 있습니다',
+          'info',
+          1800
+        );
+      }
+
+      // Host accepts incoming connection (either Guest or Spectator)
+      function handleHostIncomingConnection(conn) {
+        conn.on('data', (data) => {
+          if (!data || typeof data !== 'object') return;
+
+          if (data.type === 'hello') {
+            const joinName = (data.name || '').trim() || (data.role === 'spectator' ? '관전자' : '도전자');
+            if (data.role === 'guest') {
+              if (net.guestConn && net.guestConn.open) {
+                conn.send({ type: 'room_full', reason: '이미 도전자 자리가 찼습니다. 관전하기로 입장해 보세요!' });
+                setTimeout(() => { try { conn.close(); } catch (e) {} }, 250);
+                return;
+              }
+              net.guestConn = conn;
+              const targetVal = parseInt(document.getElementById('custom-target-input').value, 10);
+              const tScore = Math.max(1, Math.min(999, isNaN(targetVal) ? 10 : targetVal));
+              const matchConfig = {
+                type: 'start_match',
+                targetScore: tScore,
+                speedIdx: game.speedIdx,
+                activeIdx: 0,
+                spectatorCount: net.spectatorCount,
+                players: [
+                  { name: net.myName, score: 0, round: 1, stage: 1, retriesLeft: MAX_RETRIES },
+                  { name: joinName, score: 0, round: 1, stage: 1, retriesLeft: MAX_RETRIES }
+                ]
+              };
+              broadcastFromHost(matchConfig);
+              startOnlineMatch(matchConfig);
+              hostSystemChat(`[도전자] ${joinName}님이 대결에 입장했습니다!`);
+            } else if (data.role === 'spectator') {
+              if (net.spectators.length >= MAX_SPECTATORS) {
+                conn.send({ type: 'room_full', reason: `관전 정원(${MAX_SPECTATORS}명)이 가득 찼습니다.` });
+                setTimeout(() => { try { conn.close(); } catch (e) {} }, 250);
+                return;
+              }
+              const spEntry = { conn, name: joinName };
+              net.spectators.push(spEntry);
+              net.spectatorCount = net.spectators.length;
+              // Sync full state to the new spectator
+              conn.send({ type: 'spectator_sync', state: buildFullSyncState() });
+              // Notify everyone of updated spectator count
+              broadcastFromHost({ type: 'spectator_count', count: net.spectatorCount });
+              updateHUD();
+              hostSystemChat(`[관전] ${joinName}님이 관전을 시작했습니다. (👀 ${net.spectatorCount}명)`);
+            }
+            return;
+          }
+
+          // Relay & process packets from Guest or Spectator
+          handleNetPacket(data, conn);
+        });
+
+        const onPeerDisconnect = () => {
+          if (conn === net.guestConn) {
+            net.guestConn = null;
+            if (net.matchActive) {
+              net.matchActive = false;
+              broadcastFromHost({ type: 'guest_left', reason: '도전자가 게임에서 나갔습니다.' });
+              updateHUD();
+              document.getElementById('disconnect-reason').textContent = '도전자가 게임에서 나갔습니다.';
+              showModal(elDisconnectModal);
+            }
+          } else {
+            const idx = net.spectators.findIndex((s) => s.conn === conn);
+            if (idx >= 0) {
+              const leftName = net.spectators[idx].name;
+              net.spectators.splice(idx, 1);
+              net.spectatorCount = net.spectators.length;
+              broadcastFromHost({ type: 'spectator_count', count: net.spectatorCount });
+              updateHUD();
+              hostSystemChat(`[관전] ${leftName}님이 퇴장했습니다. (👀 ${net.spectatorCount}명)`);
+            }
+          }
+        };
+
+        conn.on('close', onPeerDisconnect);
+        conn.on('error', onPeerDisconnect);
+      }
+
+      function hostSystemChat(text) {
+        const sysMsg = { system: true, text };
+        appendChatMessage(sysMsg, false);
+        broadcastFromHost({ type: 'chat', system: true, text });
+      }
+
+      // Guest or Spectator connects to Host
+      function setupClientConnection(conn, role) {
+        net.conn = conn;
+
+        conn.on('open', () => {
+          net.connected = true;
+          conn.send({ type: 'hello', role, name: net.myName });
+          if (role === 'guest') {
+            document.getElementById('join-status-text').textContent = '✅ 연결 완료! 대결을 시작합니다...';
+          } else {
+            document.getElementById('spec-status-text').textContent = '✅ 방에 연결되었습니다! 화면을 동기화합니다...';
+          }
+        });
+
+        conn.on('data', (data) => {
+          if (!data || typeof data !== 'object') return;
+          handleNetPacket(data, conn);
+        });
+
+        const handleDrop = (reason) => {
+          if (!net.connected) return;
+          net.connected = false;
+          net.matchActive = false;
+          updateHUD();
+          if (game.mode === 'online') {
+            document.getElementById('disconnect-reason').textContent = reason || '방장과의 연결이 끊어졌습니다.';
+            showModal(elDisconnectModal);
+          }
+        };
+
+        conn.on('close', () => handleDrop('방장이 방을 닫았거나 연결이 끊어졌습니다.'));
+        conn.on('error', () => handleDrop('네트워크 연결 오류가 발생했습니다.'));
+      }
+
+      function handleNetPacket(data, senderConn = null) {
+        switch (data.type) {
+          case 'room_full': {
+            const msg = data.reason || '방에 입장할 수 없습니다.';
+            if (net.role === 'guest') document.getElementById('join-status-text').textContent = `❌ ${msg}`;
+            if (net.role === 'spectator') document.getElementById('spec-status-text').textContent = `❌ ${msg}`;
+            cleanupNetwork();
+            break;
+          }
+          case 'start_match': {
+            startOnlineMatch(data);
+            break;
+          }
+          case 'spectator_sync': {
+            applySpectatorMidGameSync(data.state);
+            break;
+          }
+          case 'spectator_count': {
+            net.spectatorCount = data.count || 0;
+            updateHUD();
+            break;
+          }
+          case 'guest_left': {
+            net.matchActive = false;
+            updateHUD();
+            document.getElementById('disconnect-reason').textContent = data.reason || '도전자가 게임에서 나갔습니다.';
+            showModal(elDisconnectModal);
+            break;
+          }
+          case 'gauge': {
+            // If host receives gauge from guest, relay to all spectators
+            if (net.role === 'host' && senderConn === net.guestConn) {
+              broadcastFromHost(data, senderConn);
+            }
+            if (isMyTurn()) return;
+            game.gaugeVal = data.val;
+            if (threeReady) handState.tremble = data.holding ? (curPlayer().stage === 5 ? 0.04 : 0.015) : 0;
+            renderGaugeUI();
+            break;
+          }
+          case 'stage5_roll': {
+            if (net.role === 'host' && senderConn === net.guestConn) {
+              broadcastFromHost(data, senderConn);
+            }
+            if (isMyTurn()) return;
+            executeStage5Roll({ landedCount: data.landedCount, landedIds: data.landedIds });
+            break;
+          }
+          case 'release': {
+            if (net.role === 'host' && senderConn === net.guestConn) {
+              broadcastFromHost(data, senderConn);
+            }
+            if (isMyTurn()) return;
+            game.gaugeVal = data.val;
+            renderGaugeUI();
+            evaluateGaugeRelease(data.val);
+            break;
+          }
+          case 'emoji': {
+            // Host relays emoji from any client to all other participants
+            if (net.role === 'host' && senderConn) {
+              broadcastFromHost(data, senderConn);
+            }
+            spawnFloatingEmoji(data.emoji, data.sender || '참가자');
+            break;
+          }
+          case 'chat': {
+            // Host relays chat from any client to all other participants
+            if (net.role === 'host' && senderConn) {
+              broadcastFromHost(data, senderConn);
+            }
+            appendChatMessage({
+              system: Boolean(data.system),
+              roleTag: data.roleTag || '관전',
+              sender: data.sender || '익명',
+              text: data.text || '',
+              isSelf: false
+            }, !data.system);
+            break;
+          }
+          case 'speed_change': {
+            game.speedIdx = data.speedIdx;
+            syncSpeedButtonsUI();
+            break;
+          }
+          case 'rematch_request': {
+            if (net.role === 'spectator') return;
+            net.oppRematch = true;
+            const statusEl = document.getElementById('rematch-status-text');
+            if (net.myRematch) {
+              if (net.role === 'host') triggerOnlineRematch();
+            } else {
+              statusEl.textContent = '🔥 상대방이 다시 대결하기를 요청했습니다!';
+              statusEl.classList.remove('hidden');
+            }
+            break;
+          }
+        }
+      }
+
+      function triggerOnlineRematch() {
+        const matchConfig = {
+          type: 'start_match',
+          targetScore: game.targetScore,
+          speedIdx: game.speedIdx,
+          activeIdx: 0,
+          spectatorCount: net.spectatorCount,
+          players: [
+            { name: game.players[0].name, score: 0, round: 1, stage: 1, retriesLeft: MAX_RETRIES },
+            { name: game.players[1].name, score: 0, round: 1, stage: 1, retriesLeft: MAX_RETRIES }
+          ]
+        };
+        broadcastFromHost(matchConfig);
+        startOnlineMatch(matchConfig);
+        hostSystemChat('🔄 새로운 대결이 시작되었습니다!');
+      }
+
+      function createOnlineRoom() {
+        if (typeof Peer === 'undefined') {
+          showToast('네트워크 모듈 로드 실패', 'PeerJS CDN에 연결할 수 없습니다. 1인용/로컬 2인 모드를 이용해 주세요.', 'fail', 2600);
+          return;
+        }
+        cleanupNetwork();
+        resetChat();
+        const code = String(Math.floor(1000 + Math.random() * 9000));
+        net.role = 'host';
+        net.myIdx = 0;
+        net.roomCode = code;
+        net.myName = (document.getElementById('online-nick-input').value || '').trim() || '방장';
+
+        game.players[0].name = net.myName;
+        game.players[1].name = '대기 중...';
+
+        document.getElementById('host-before-create').classList.add('hidden');
+        document.getElementById('target-score-box').classList.add('hidden');
+        document.getElementById('host-waiting-box').classList.remove('hidden');
+        document.getElementById('room-code-display').textContent = code;
+        document.getElementById('host-status-text').textContent = '🔌 서버에 방 등록 중...';
+
+        try {
+          const peer = new Peer(PEER_PREFIX + code, PEER_CONFIG);
+          net.peer = peer;
+
+          peer.on('open', () => {
+            net.connected = true;
+            document.getElementById('host-status-text').textContent = '⏳ 도전자 입장을 기다리는 중... (관전자도 지금 입장 가능)';
+            updateHUD();
+          });
+
+          peer.on('connection', (conn) => {
+            handleHostIncomingConnection(conn);
+          });
+
+          peer.on('error', (err) => {
+            document.getElementById('host-status-text').textContent =
+              err && err.type === 'unavailable-id'
+                ? '❌ 방 코드가 중복되었습니다. 취소 후 다시 생성해 주세요.'
+                : '❌ 네트워크 서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+          });
+        } catch (err) {
+          document.getElementById('host-status-text').textContent = '❌ 온라인 방 생성 중 오류가 발생했습니다.';
+        }
+      }
+
+      function connectToOnlineRoom(role) {
+        const isSpec = role === 'spectator';
+        const statusEl = document.getElementById(isSpec ? 'spec-status-text' : 'join-status-text');
+        const inputEl = document.getElementById(isSpec ? 'spec-code-input' : 'join-code-input');
+
+        if (typeof Peer === 'undefined') {
+          statusEl.textContent = '❌ 네트워크 모듈(PeerJS)을 불러올 수 없습니다.';
+          return;
+        }
+        const code = (inputEl.value || '').replace(/\D/g, '');
+        if (code.length !== 4) {
+          statusEl.textContent = '⚠️ 4자리 숫자 방 번호를 입력해 주세요.';
+          return;
+        }
+
+        cleanupNetwork();
+        resetChat();
+        net.role = role;
+        net.myIdx = isSpec ? -1 : 1;
+        net.roomCode = code;
+        net.myName = (document.getElementById('online-nick-input').value || '').trim() || (isSpec ? '관전자' : '도전자');
+        statusEl.textContent = `🔌 방 ${code}에 연결 중...`;
+
+        try {
+          const peer = new Peer(PEER_CONFIG);
+          net.peer = peer;
+
+          peer.on('open', () => {
+            const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+            setupClientConnection(conn, role);
+          });
+
+          peer.on('error', (err) => {
+            statusEl.textContent = err && err.type === 'peer-unavailable'
+              ? '❌ 해당 방 번호를 찾을 수 없습니다. 번호를 다시 확인해 주세요.'
+              : '❌ 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+          });
+        } catch (err) {
+          statusEl.textContent = '❌ 연결 시도 중 오류가 발생했습니다.';
+        }
+      }
+
+      function setupStage(stageNum) {
+        const p = curPlayer();
+        p.stage = stageNum;
+        game.stepIndex = 0;
+        game.gaugeVal = 0;
+        game.gaugeDir = 1;
+        game.isHolding = false;
+        game.stage5LandedCount = 0;
+        game.stage5LandedIds = [];
+
+        if (!threeReady) {
+          game.phase = stageNum === 5 ? 'stage5_roll' : 'ready';
+          renderGaugeUI();
+          updateHUD();
+          return;
+        }
+
+        if (stageNum <= 3) {
+          game.phase = 'animating';
+          setCameraFocus('overview');
+          setHandPose('ready_palm');
+          updateHUD();
+
+          const floorPositions = generateFloorPositions(4);
+          sound.playWhoosh();
+          stones.forEach((st, idx) => {
+            if (idx === 0) {
+              st.state = 'hand_palm';
+              st.handOffset.copy(PALM_OFFSETS[2]);
+            } else {
+              st.pos.copy(handGroup.position).add(new THREE.Vector3(0, 0.3, 0));
+              launchStoneArc(st, floorPositions[idx - 1], 1.5 + Math.random() * 0.5, 0.5 + idx * 0.04, () => {
+                st.state = 'floor';
+                sound.playClack(0.2, 0.95 + idx * 0.05);
+              });
+            }
+          });
+          setTimeout(() => {
+            if (game.phase === 'animating') {
+              game.phase = 'ready';
+              renderGaugeUI();
+              updateHUD();
+            }
+          }, 700);
+        } else if (stageNum === 4) {
+          game.phase = 'ready';
+          setCameraFocus('overview');
+          setHandPose('ready_palm');
+          stones.forEach((st, idx) => {
+            st.state = 'hand_palm';
+            st.handOffset.copy(PALM_OFFSETS[idx]);
+          });
+          sound.playClack(0.22, 1.1);
+          renderGaugeUI();
+          updateHUD();
+        } else if (stageNum === 5) {
+          game.phase = 'stage5_roll';
+          setCameraFocus('stage5');
+          setHandPose('ready_palm');
+          stones.forEach((st, idx) => {
+            st.state = 'hand_palm';
+            st.handOffset.copy(PALM_OFFSETS[idx]);
+          });
+          sound.playClack(0.24, 1.15);
+          renderGaugeUI();
+          updateHUD();
+        }
+      }
+
+      function handleFailure(detailMessage, toastTitle, toastSub) {
+        const p = curPlayer();
+
+        if (game.mode === 'online') {
+          game.phase = 'turn_wait';
+          const failedPlayer = p;
+          const nextIdx = game.activeIdx === 0 ? 1 : 0;
+          const nextPlayer = game.players[nextIdx];
+          game.activeIdx = nextIdx;
+          sound.playTurnSwitch();
+          showToast(
+            `${failedPlayer.name}님 실패!`,
+            `👉 ${nextPlayer.name}님 차례 (${nextPlayer.round}회차 ${STAGE_CONFIG[nextPlayer.stage].shortName})`,
+            'fail',
+            1550
+          );
+          updateHUD();
+          setTimeout(() => {
+            if (game.mode === 'online' && game.phase === 'turn_wait') {
+              setupStage(curPlayer().stage);
+            }
+          }, 1550);
+        } else if (game.mode === '2p') {
+          game.phase = 'turn_wait';
+          const failedPlayer = p;
+          const nextIdx = game.activeIdx === 0 ? 1 : 0;
+          const nextPlayer = game.players[nextIdx];
+
+          document.getElementById('turn-fail-msg').textContent = `${failedPlayer.name}님 실패!`;
+          document.getElementById('turn-fail-detail').textContent = detailMessage;
+          document.getElementById('turn-next-title').textContent = `👉 ${nextPlayer.name}님의 차례`;
+          document.getElementById('turn-next-sub').textContent =
+            `${nextPlayer.round}회차 · ${STAGE_CONFIG[nextPlayer.stage].shortName}부터 이어서 진행합니다! (현재 ${nextPlayer.score}점)`;
+
+          game.activeIdx = nextIdx;
+          sound.playTurnSwitch();
+          showModal(elTurnModal);
+          updateHUD();
+        } else {
+          if (p.retriesLeft > 0) {
+            game.phase = 'retry_wait';
+            document.getElementById('retry-detail').textContent = detailMessage;
+            showToast(toastTitle, toastSub, 'fail', 1400);
+            updateHUD();
+          } else {
+            game.phase = 'gameover';
+            document.getElementById('gameover-reason').textContent = detailMessage;
+            document.getElementById('go-round').textContent = `${p.round}회차`;
+            document.getElementById('go-score').textContent = `${p.score} / ${game.targetScore}점`;
+            document.getElementById('go-stage').textContent = STAGE_CONFIG[p.stage].shortName;
+            showModal(elGameOverModal);
+            updateHUD();
+          }
+        }
+      }
+
+      function rollStage5Count() {
+        const r = Math.random() * 100;
+        let acc = 0;
+        for (const item of STAGE5_PROBS) {
+          acc += item.weight;
+          if (r <= acc) return item.count;
+        }
+        return 3;
+      }
+
+      function executeStage5Roll(remoteData = null) {
+        if (!remoteData && game.phase !== 'stage5_roll') return;
+        game.phase = 'animating';
+        updateHUD();
+
+        let landedCount, landedIds;
+        if (remoteData) {
+          landedCount = remoteData.landedCount;
+          landedIds = remoteData.landedIds;
+        } else {
+          landedCount = rollStage5Count();
+          const ids = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
+          landedIds = ids.slice(0, landedCount);
+          if (game.mode === 'online' && isMyTurn()) {
+            sendNet({ type: 'stage5_roll', landedCount, landedIds });
+          }
+        }
+        game.stage5LandedCount = landedCount;
+        game.stage5LandedIds = landedIds;
+
+        sound.playWhoosh();
+        if (threeReady) {
+          setHandPose('toss_up');
+          setCameraFocus('stage5');
+          stones.forEach((st) => {
+            st.pos.copy(st.mesh.position);
+            const isLanded = game.stage5LandedIds.includes(st.id);
+            const targetWorld = new THREE.Vector3(0, 1.65, 1.15);
+            if (isLanded) {
+              const slot = game.stage5LandedIds.indexOf(st.id);
+              const off = BACK_OFFSETS[slot];
+              targetWorld.set(-off.x, 1.35 - off.y, 1.15 + off.z);
+            } else {
+              targetWorld.set((Math.random() - 0.5) * 1.4, 1.5, 0.8 + (Math.random() - 0.5) * 0.8);
+            }
+            launchStoneArc(st, targetWorld, 2.0, 0.62, () => {
+              if (isLanded) {
+                const slot = game.stage5LandedIds.indexOf(st.id);
+                st.state = 'hand_back';
+                st.handOffset.copy(BACK_OFFSETS[slot]);
+                sound.playClack(0.22, 1.1 + slot * 0.06);
+              } else {
+                dropStoneBounce(st, (Math.random() - 0.5) * 2.4, -1.2);
+              }
+            });
+          });
+          setTimeout(() => setHandPose('back_of_hand'), 200);
+        }
+
+        setTimeout(() => {
+          const p = curPlayer();
+          if (landedCount === 0) {
+            sound.playFail();
+            handleFailure('손등에 0개 안착 (모두 떨어졌습니다)', '손등 올리기 실패!', '0개 안착');
+          } else {
+            const zone = getTargetZone(5, p.round);
+            sound.playCatch(landedCount - 1);
+            if (threeReady) spawnParticles(new THREE.Vector3(0, 1.75, 1.15), 18, false);
+            showToast(`손등에 ${landedCount}개 안착!`, `목표 ${zone.min}~${zone.max} 구간에서 꺾어 잡으세요!`, 'info', 1600);
+            game.stepIndex = 1;
+            game.gaugeVal = 0;
+            game.gaugeDir = 1;
+            game.phase = 'ready';
+            renderGaugeUI();
+            updateHUD();
+          }
+        }, 780);
+      }
+
+      function evaluateGaugeRelease(remoteVal = null) {
+        const p = curPlayer();
+        const releasedVal = remoteVal !== null ? remoteVal : Math.round(game.gaugeVal * 10) / 10;
+        const zone = getTargetZone(p.stage, p.round);
+        const isSuccess = releasedVal >= zone.min && releasedVal <= zone.max;
+
+        if (remoteVal === null && game.mode === 'online' && isMyTurn()) {
+          sendNet({ type: 'release', val: releasedVal });
+        }
+
+        game.isHolding = false;
+        game.phase = 'animating';
+        if (threeReady) handState.tremble = 0;
+        updateHUD();
+
+        if (p.stage <= 3) {
+          animateStandardTurn(isSuccess, releasedVal, zone);
+        } else if (p.stage === 4) {
+          animateStage4Turn(isSuccess, releasedVal, zone);
+        } else {
+          animateStage5Snatch(isSuccess, releasedVal, zone);
+        }
+      }
+
+      function animateStandardTurn(isSuccess, releasedVal, zone) {
+        const p = curPlayer();
+        const step = STAGE_CONFIG[p.stage].steps[game.stepIndex];
+        sound.playWhoosh();
+
+        if (threeReady) {
+          const tossStone = stones[0];
+          const toPick = stones.filter((s) => s.state === 'floor').slice(0, step.pick);
+          setCameraFocus('toss');
+          setHandPose('toss_up');
+          tossStone.pos.copy(tossStone.mesh.position);
+          const catchPos = new THREE.Vector3(0.1, 1.72, 1.4);
+          launchStoneArc(tossStone, catchPos, 3.2, 0.72, () => {
+            if (isSuccess) {
+              tossStone.state = 'hand_palm';
+              tossStone.handOffset.copy(PALM_OFFSETS[0]);
+              sound.playCatch(game.stepIndex);
+              spawnParticles(catchPos, 16, false);
+            } else {
+              dropStoneBounce(tossStone, 0.4, -1.5);
+              sound.playFail();
+            }
+          });
+          setTimeout(() => {
+            setHandPose('sweep_floor');
+            if (isSuccess) {
+              toPick.forEach((st, idx) => {
+                const inHand = stones.filter((s) => s.state === 'hand_palm').length;
+                st.state = 'hand_palm';
+                st.handOffset.copy(PALM_OFFSETS[(inHand + idx) % PALM_OFFSETS.length]);
+                sound.playClack(0.24, 1.05 + idx * 0.08);
+              });
+            }
+          }, 220);
+          setTimeout(() => setHandPose('catch_palm'), 480);
+        } else {
+          isSuccess ? sound.playCatch(game.stepIndex) : sound.playFail();
+        }
+
+        setTimeout(() => {
+          setCameraFocus('overview');
+          if (isSuccess) {
+            setHandPose('ready_palm');
+            showToast(`성공! (${Math.round(releasedVal)})`, `${step.pick}개 집기 완료`, 'success', 1100);
+            advanceStepOrStage();
+          } else {
+            handleFailure(
+              `놓은 수치: ${Math.round(releasedVal)} (목표: ${zone.min} ~ ${zone.max})`,
+              '놓쳤습니다!',
+              `수치 ${Math.round(releasedVal)} (목표 ${zone.min}~${zone.max})`
+            );
+          }
+        }, 840);
+      }
+
+      function animateStage4Turn(isSuccess, releasedVal, zone) {
+        const step = STAGE_CONFIG[4].steps[game.stepIndex];
+        sound.playWhoosh();
+
+        if (threeReady) {
+          const tossStone = stones[0];
+          const others = stones.slice(1);
+          setCameraFocus('toss');
+          setHandPose('toss_up');
+          tossStone.pos.copy(tossStone.mesh.position);
+          const catchPos = new THREE.Vector3(0.1, 1.72, 1.4);
+          launchStoneArc(tossStone, catchPos, 3.3, 0.74, () => {
+            if (isSuccess) {
+              tossStone.state = 'hand_palm';
+              tossStone.handOffset.copy(PALM_OFFSETS[0]);
+              sound.playCatch(game.stepIndex + 1);
+              spawnParticles(catchPos, 18, false);
+            } else {
+              dropStoneBounce(tossStone, -0.5, -1.5);
+              sound.playFail();
+            }
+          });
+          setTimeout(() => {
+            setHandPose('sweep_floor');
+            if (step.type === 'place4') {
+              const pts = generateFloorPositions(4);
+              others.forEach((st, idx) => {
+                st.state = 'floor';
+                st.pos.copy(pts[idx]);
+                st.mesh.position.copy(st.pos);
+                sound.playClack(0.2, 0.92 + idx * 0.05);
+              });
+            } else if (step.type === 'sweep4' && isSuccess) {
+              others.forEach((st, idx) => {
+                st.state = 'hand_palm';
+                st.handOffset.copy(PALM_OFFSETS[idx + 1]);
+                sound.playClack(0.25, 1.1 + idx * 0.05);
+              });
+            }
+          }, 230);
+          setTimeout(() => setHandPose('catch_palm'), 500);
+        } else {
+          isSuccess ? sound.playCatch(2) : sound.playFail();
+        }
+
+        setTimeout(() => {
+          setCameraFocus('overview');
+          if (isSuccess) {
+            setHandPose('ready_palm');
+            showToast(`성공! (${Math.round(releasedVal)})`, step.type === 'place4' ? '4개 내려놓기 성공!' : '4개 쓸어 담기 성공!', 'success', 1150);
+            advanceStepOrStage();
+          } else {
+            handleFailure(
+              `놓은 수치: ${Math.round(releasedVal)} (목표: ${zone.min} ~ ${zone.max})`,
+              '4단 실패!',
+              `수치 ${Math.round(releasedVal)} (목표 ${zone.min}~${zone.max})`
+            );
+          }
+        }, 860);
+      }
+
+      function animateStage5Snatch(isSuccess, releasedVal, zone) {
+        sound.playWhoosh();
+        if (threeReady) {
+          setCameraFocus('stage5');
+          const landed = stones.filter((s) => game.stage5LandedIds.includes(s.id));
+          landed.forEach((st, idx) => {
+            st.pos.copy(st.mesh.position);
+            launchStoneArc(st, new THREE.Vector3((idx - 1.5) * 0.16, 1.9, 1.05), 1.75, 0.58, () => {
+              if (isSuccess) {
+                st.state = 'hand_palm';
+                st.handOffset.copy(PALM_OFFSETS[idx % PALM_OFFSETS.length]);
+              } else {
+                dropStoneBounce(st, (Math.random() - 0.5) * 2.8, -1.5);
+              }
+            });
+          });
+          setTimeout(() => setHandPose('snatch'), 250);
+        }
+
+        setTimeout(() => {
+          const p = curPlayer();
+          if (isSuccess) {
+            const pts = game.stage5LandedCount;
+            p.score += pts;
+            sound.playVictory();
+            if (threeReady) spawnParticles(new THREE.Vector3(0, 2.0, 1.0), 42, true);
+            updateHUD();
+
+            if (p.score >= game.targetScore) {
+              game.phase = 'victory';
+              const statsEl = document.getElementById('victory-stats');
+              const restartBtn = document.getElementById('victory-restart-btn');
+              document.getElementById('rematch-status-text').classList.add('hidden');
+
+              if (game.mode === '2p' || game.mode === 'online') {
+                const p1 = game.players[0];
+                const p2 = game.players[1];
+                document.getElementById('victory-title').textContent = `${p.name}님 승리!`;
+                document.getElementById('victory-desc').textContent =
+                  `5단 꺾기 +${pts}점으로 목표 점수(${game.targetScore}점)에 먼저 도달했습니다!`;
+                statsEl.innerHTML = `
+                  <div>
+                    <div class="text-[11px] text-amber-200/75 truncate">${escapeHtml(p1.name)}</div>
+                    <div class="font-display text-xl text-amber-300 mt-0.5">${p1.score}점</div>
+                  </div>
+                  <div class="border-x border-white/10">
+                    <div class="text-[11px] text-emerald-200/75">도달 회차</div>
+                    <div class="font-display text-xl text-emerald-300 mt-0.5">${p.round}회차</div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] text-sky-200/75 truncate">${escapeHtml(p2.name)}</div>
+                    <div class="font-display text-xl text-sky-300 mt-0.5">${p2.score}점</div>
+                  </div>
+                `;
+                if (isSpectator()) {
+                  restartBtn.classList.add('hidden');
+                  const statusEl = document.getElementById('rematch-status-text');
+                  statusEl.textContent = '👀 두 선수가 재대결을 시작하면 자동으로 이어집니다...';
+                  statusEl.classList.remove('hidden');
+                } else {
+                  restartBtn.classList.remove('hidden');
+                  restartBtn.textContent = game.mode === 'online' ? '🔄 다시 대결하기' : '다시 하기';
+                }
+              } else {
+                restartBtn.classList.remove('hidden');
+                document.getElementById('victory-title').textContent = '목표 달성! 승리!';
+                document.getElementById('victory-desc').textContent =
+                  `5단 꺾기 +${pts}점으로 목표 점수(${game.targetScore}점)를 달성했습니다!`;
+                statsEl.innerHTML = `
+                  <div>
+                    <div class="text-[11px] text-amber-200/75">도달 회차</div>
+                    <div class="font-display text-xl text-amber-300 mt-0.5">${p.round}회차</div>
+                  </div>
+                  <div class="border-x border-white/10">
+                    <div class="text-[11px] text-emerald-200/75">최종 점수</div>
+                    <div class="font-display text-xl text-emerald-300 mt-0.5">${p.score}점</div>
+                  </div>
+                  <div>
+                    <div class="text-[11px] text-rose-200/75">남은 재시도</div>
+                    <div class="font-display text-xl text-rose-300 mt-0.5">${p.retriesLeft} / ${MAX_RETRIES}</div>
+                  </div>
+                `;
+                restartBtn.textContent = '다시 하기';
+              }
+              showModal(elVictoryModal);
+              updateHUD();
+            } else {
+              const nextRound = p.round + 1;
+              showToast(`+${pts}점 획득! (${p.score}/${game.targetScore}점)`, `곧 ${nextRound}회차로 넘어갑니다!`, 'success', 1500);
+              setTimeout(() => {
+                p.round = nextRound;
+                const scalePct = Math.round(Math.pow(0.9, p.round - 1) * 100);
+                showToast(`${p.round}회차 진입! 게이지 10% 축소`, `성공 구간 폭이 기본 대비 ${scalePct}%로 줄어듭니다`, 'info', 2000);
+                setupStage(1);
+              }, 1550);
+            }
+          } else {
+            sound.playFail();
+            handleFailure(
+              `놓은 수치: ${Math.round(releasedVal)} (목표: ${zone.min} ~ ${zone.max})`,
+              '꺾기 실패!',
+              `수치 ${Math.round(releasedVal)} (목표 ${zone.min}~${zone.max})`
+            );
+          }
+        }, 720);
+      }
+
+      function advanceStepOrStage() {
+        const p = curPlayer();
+        const cfg = STAGE_CONFIG[p.stage];
+        if (game.stepIndex + 1 < cfg.steps.length) {
+          game.stepIndex += 1;
+          game.gaugeVal = 0;
+          game.gaugeDir = 1;
+          game.phase = 'ready';
+          renderGaugeUI();
+          updateHUD();
+        } else if (p.stage < 5) {
+          const nextStage = p.stage + 1;
+          const nextZone = getTargetZone(nextStage, p.round);
+          setTimeout(() => {
+            showToast(STAGE_CONFIG[nextStage].name, `목표 ${nextZone.min}~${nextZone.max} (폭 ${nextZone.width}%)`, 'info', 1400);
+            setupStage(nextStage);
+          }, 400);
+        }
+      }
+
+      /* --------------------------------------------------------------------------
+       * 7. UNIFIED INPUT, CHAT, EMOJI & UI EVENT LISTENERS
+       * -------------------------------------------------------------------------- */
+      function bindUIEvents() {
+        // Unified Pointer Events on Action Button
+        elActionBtn.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          if (isAnyModalOpen() || !isMyTurn()) return;
+          sound.ensureContext();
+          if (game.phase === 'stage5_roll') {
+            executeStage5Roll();
+            return;
+          }
+          if (game.phase !== 'ready' || game.isHolding) return;
+          game.isHolding = true;
+          game.phase = 'charging';
+          if (threeReady) handState.tremble = curPlayer().stage === 5 ? 0.04 : 0.015;
+          updateHUD();
+        });
+
+        const releaseHold = () => {
+          if (!game.isHolding || game.phase !== 'charging' || !isMyTurn()) return;
+          evaluateGaugeRelease();
+        };
+        window.addEventListener('pointerup', releaseHold);
+        window.addEventListener('pointercancel', releaseHold);
+
+        // Keyboard Space Support (Blocked when typing in INPUT/TEXTAREA)
+        window.addEventListener('keydown', (e) => {
+          if (e.code === 'Space' && !e.repeat) {
+            if (isAnyModalOpen() || !isMyTurn()) return;
+            const tag = document.activeElement ? document.activeElement.tagName : '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            sound.ensureContext();
+            if (game.phase === 'stage5_roll') {
+              executeStage5Roll();
+            } else if (game.phase === 'ready' && !game.isHolding) {
+              game.isHolding = true;
+              game.phase = 'charging';
+              if (threeReady) handState.tremble = curPlayer().stage === 5 ? 0.04 : 0.015;
+              updateHUD();
+            }
+          }
+        });
+        window.addEventListener('keyup', (e) => {
+          if (e.code === 'Space' && game.isHolding && isMyTurn()) {
+            e.preventDefault();
+            evaluateGaugeRelease();
+          }
+        });
+
+        // Mode Selection (1P vs Local 2P vs Online)
+        const mode1pBtn = document.getElementById('mode-1p-btn');
+        const mode2pBtn = document.getElementById('mode-2p-btn');
+        const modeOnlineBtn = document.getElementById('mode-online-btn');
+        const namesBox = document.getElementById('player-names-box');
+        const onlineBox = document.getElementById('online-setup-box');
+        const targetBox = document.getElementById('target-score-box');
+        const startGameBtn = document.getElementById('start-game-btn');
+
+        const tabHostBtn = document.getElementById('online-tab-host');
+        const tabJoinBtn = document.getElementById('online-tab-join');
+        const tabSpecBtn = document.getElementById('online-tab-spectate');
+        const hostPanel = document.getElementById('online-host-panel');
+        const joinPanel = document.getElementById('online-join-panel');
+        const specPanel = document.getElementById('online-spectate-panel');
+
+        let onlineSubTab = 'host';
+        function setOnlineSubTab(tab) {
+          onlineSubTab = tab;
+          const inactive = 'py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-amber-100/80 hover:bg-white/10 transition cursor-pointer';
+          tabHostBtn.className = tab === 'host'
+            ? 'py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-emerald-500 text-stone-950 transition cursor-pointer' : inactive;
+          tabJoinBtn.className = tab === 'join'
+            ? 'py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-emerald-500 text-stone-950 transition cursor-pointer' : inactive;
+          tabSpecBtn.className = tab === 'spectate'
+            ? 'py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-purple-400 text-stone-950 transition cursor-pointer' : inactive;
+
+          hostPanel.classList.toggle('hidden', tab !== 'host');
+          joinPanel.classList.toggle('hidden', tab !== 'join');
+          specPanel.classList.toggle('hidden', tab !== 'spectate');
+
+          if (tab === 'host') {
+            const isWaiting = !document.getElementById('host-waiting-box').classList.contains('hidden');
+            targetBox.classList.toggle('hidden', isWaiting);
+          } else {
+            targetBox.classList.add('hidden');
+          }
+        }
+        tabHostBtn.addEventListener('click', () => setOnlineSubTab('host'));
+        tabJoinBtn.addEventListener('click', () => setOnlineSubTab('join'));
+        tabSpecBtn.addEventListener('click', () => setOnlineSubTab('spectate'));
+
+        function setModeUI(mode) {
+          game.mode = mode;
+          const inactive = 'py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border border-white/15 bg-white/10 text-amber-100 hover:bg-white/20 transition cursor-pointer';
+          mode1pBtn.className = mode === '1p'
+            ? 'py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border-2 border-amber-300 bg-amber-400 text-stone-950 shadow transition cursor-pointer' : inactive;
+          mode2pBtn.className = mode === '2p'
+            ? 'py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border-2 border-sky-300 bg-sky-400 text-stone-950 shadow transition cursor-pointer' : inactive;
+          modeOnlineBtn.className = mode === 'online'
+            ? 'py-2.5 px-2 rounded-2xl font-display text-sm sm:text-base border-2 border-emerald-300 bg-emerald-400 text-stone-950 shadow transition cursor-pointer' : inactive;
+
+          namesBox.classList.toggle('hidden', mode !== '2p');
+          onlineBox.classList.toggle('hidden', mode !== 'online');
+          startGameBtn.classList.toggle('hidden', mode === 'online');
+
+          if (mode === 'online') {
+            setOnlineSubTab(onlineSubTab);
+          } else {
+            targetBox.classList.remove('hidden');
+          }
+        }
+        mode1pBtn.addEventListener('click', () => setModeUI('1p'));
+        mode2pBtn.addEventListener('click', () => setModeUI('2p'));
+        modeOnlineBtn.addEventListener('click', () => setModeUI('online'));
+
+        // Modal Speed Buttons
+        document.querySelectorAll('.modal-speed-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            game.speedIdx = parseInt(btn.dataset.speedOpt, 10);
+            syncSpeedButtonsUI();
+          });
+        });
+
+        // Online Room Controls (Host / Guest / Spectator)
+        document.getElementById('create-room-btn').addEventListener('click', () => {
+          sound.ensureContext();
+          createOnlineRoom();
+        });
+        document.getElementById('cancel-room-btn').addEventListener('click', () => {
+          cleanupNetwork();
+          document.getElementById('host-waiting-box').classList.add('hidden');
+          document.getElementById('host-before-create').classList.remove('hidden');
+          targetBox.classList.remove('hidden');
+          updateHUD();
+        });
+        document.getElementById('copy-code-btn').addEventListener('click', () => {
+          if (copyToClipboard(net.roomCode)) {
+            showToast('방 번호 복사 완료!', `코드: ${net.roomCode}`, 'success', 1200);
+          }
+        });
+        document.getElementById('copy-link-btn').addEventListener('click', () => {
+          const baseUrl = `${window.location.origin}${window.location.pathname}`;
+          const inviteUrl = `${baseUrl}?room=${net.roomCode}`;
+          if (copyToClipboard(inviteUrl)) {
+            showToast('대결 초대 링크 복사 완료!', '카카오톡이나 문자로 붙여넣기 하세요', 'success', 1500);
+          }
+        });
+        document.getElementById('copy-spec-link-btn').addEventListener('click', () => {
+          const baseUrl = `${window.location.origin}${window.location.pathname}`;
+          const specUrl = `${baseUrl}?room=${net.roomCode}&spectate=1`;
+          if (copyToClipboard(specUrl)) {
+            showToast('관전 링크 복사 완료!', '링크를 누르면 바로 관전 모드로 입장합니다', 'success', 1600);
+          }
+        });
+        document.getElementById('join-room-btn').addEventListener('click', () => {
+          sound.ensureContext();
+          connectToOnlineRoom('guest');
+        });
+        document.getElementById('spectate-room-btn').addEventListener('click', () => {
+          sound.ensureContext();
+          connectToOnlineRoom('spectator');
+        });
+
+        // Real-time Chat Controls
+        const chatInput = document.getElementById('chat-input');
+        function submitChat() {
+          if (game.mode !== 'online' || !net.connected) return;
+          const text = (chatInput.value || '').trim();
+          if (!text) return;
+          chatInput.value = '';
+          const payload = {
+            type: 'chat',
+            roleTag: myRoleTag(),
+            sender: net.myName,
+            text
+          };
+          appendChatMessage({ ...payload, isSelf: true }, false);
+          sendNet(payload);
+        }
+        document.getElementById('chat-send-btn').addEventListener('click', submitChat);
+        chatInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            submitChat();
+          }
+        });
+        document.getElementById('chat-minimize-btn').addEventListener('click', () => {
+          chatState.isOpen = false;
+          updateChatPanelVisibility();
+        });
+        document.getElementById('chat-toggle-btn').addEventListener('click', () => {
+          chatState.isOpen = true;
+          chatState.unread = 0;
+          updateChatPanelVisibility();
+          renderChatMessages();
+        });
+
+        // Emoji Reaction Buttons (👏 🔥 😂 😱 🎉)
+        document.querySelectorAll('.emoji-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (game.mode !== 'online' || !net.connected) return;
+            const emoji = btn.dataset.emoji;
+            const senderLabel = `[${myRoleTag()}] ${net.myName}`;
+            spawnFloatingEmoji(emoji, senderLabel);
+            sendNet({ type: 'emoji', emoji, sender: senderLabel });
+          });
+        });
+
+        // Target Score Presets
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        const customInput = document.getElementById('custom-target-input');
+        function highlightPreset(val) {
+          presetBtns.forEach((btn) => {
+            const match = parseInt(btn.dataset.preset, 10) === parseInt(val, 10);
+            btn.className = match
+              ? 'preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-400 text-stone-950 border border-amber-200 shadow transition cursor-pointer'
+              : 'preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer';
+          });
+        }
+        presetBtns.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            customInput.value = btn.dataset.preset;
+            highlightPreset(btn.dataset.preset);
+          });
+        });
+        customInput.addEventListener('input', () => highlightPreset(customInput.value));
+
+        // Start / Resume / New Game Buttons
+        startGameBtn.addEventListener('click', () => {
+          sound.ensureContext();
+          startNewGame();
+        });
+        document.getElementById('cancel-settings-btn').addEventListener('click', () => {
+          hideModal(elStartModal);
+        });
+        document.getElementById('new-game-btn').addEventListener('click', () => {
+          customInput.value = game.targetScore;
+          highlightPreset(game.targetScore);
+          syncSpeedButtonsUI();
+          const canResume = (game.started || isSpectator()) && game.phase !== 'gameover' && game.phase !== 'victory';
+          document.getElementById('cancel-settings-btn').classList.toggle('hidden', !canResume);
+          showModal(elStartModal);
+        });
+
+        // Rules Modal Buttons
+        document.getElementById('rules-btn').addEventListener('click', () => showModal(elRulesModal));
+        document.getElementById('modal-rules-btn').addEventListener('click', () => showModal(elRulesModal));
+        document.getElementById('close-rules-btn').addEventListener('click', () => hideModal(elRulesModal));
+        elRulesModal.addEventListener('click', (e) => {
+          if (e.target === elRulesModal) hideModal(elRulesModal);
+        });
+
+        // Disconnect Return to Menu Button
+        document.getElementById('disconnect-menu-btn').addEventListener('click', () => {
+          cleanupNetwork();
+          resetChat();
+          game.started = false;
+          hideModal(elDisconnectModal);
+          document.getElementById('host-waiting-box').classList.add('hidden');
+          document.getElementById('host-before-create').classList.remove('hidden');
+          document.getElementById('cancel-settings-btn').classList.add('hidden');
+          showModal(elStartModal);
+          updateHUD();
+        });
+
+        // Local 2P Next Turn Button
+        document.getElementById('start-next-turn-btn').addEventListener('click', () => {
+          sound.ensureContext();
+          hideModal(elTurnModal);
+          const p = curPlayer();
+          setupStage(p.stage);
+          showToast(`${p.name}님 차례!`, `${p.round}회차 · ${STAGE_CONFIG[p.stage].name}`, 'info', 1300);
+        });
+
+        // 1P Retry Stage Button
+        document.getElementById('retry-stage-btn').addEventListener('click', () => {
+          const p = curPlayer();
+          if (game.phase !== 'retry_wait' || p.retriesLeft <= 0) return;
+          sound.ensureContext();
+          p.retriesLeft -= 1;
+          elRetryPanel.classList.add('hidden');
+          setupStage(p.stage);
+        });
+
+        // Victory & Game Over Restart Buttons
+        document.getElementById('victory-restart-btn').addEventListener('click', () => {
+          if (game.mode === 'online' && net.connected && !isSpectator()) {
+            net.myRematch = true;
+            sendNet({ type: 'rematch_request' });
+            if (net.oppRematch) {
+              if (net.role === 'host') triggerOnlineRematch();
+            } else {
+              const statusEl = document.getElementById('rematch-status-text');
+              statusEl.textContent = '⏳ 상대방의 다시 대결하기 응답을 기다리는 중...';
+              statusEl.classList.remove('hidden');
+            }
+            return;
+          }
+          hideModal(elVictoryModal);
+          document.getElementById('cancel-settings-btn').classList.add('hidden');
+          showModal(elStartModal);
+        });
+        document.getElementById('gameover-restart-btn').addEventListener('click', () => {
+          hideModal(elGameOverModal);
+          document.getElementById('cancel-settings-btn').classList.add('hidden');
+          showModal(elStartModal);
+        });
+
+        // Top-right Speed & Sound Toggles
+        document.getElementById('speed-btn').addEventListener('click', () => {
+          if (game.mode === 'online' && net.role !== 'host') {
+            showToast('속도 변경 권한', '온라인 방에서는 방장만 속도를 변경할 수 있습니다.', 'info', 1400);
+            return;
+          }
+          game.speedIdx = (game.speedIdx + 1) % SPEED_PRESETS.length;
+          syncSpeedButtonsUI();
+          if (game.mode === 'online') sendNet({ type: 'speed_change', speedIdx: game.speedIdx });
+        });
+
+        document.getElementById('sound-btn').addEventListener('click', () => {
+          sound.enabled = !sound.enabled;
+          document.getElementById('sound-on-icon').classList.toggle('hidden', !sound.enabled);
+          document.getElementById('sound-off-icon').classList.toggle('hidden', sound.enabled);
+        });
+
+        // Auto-detect ?room=XXXX and optional &spectate=1 URL parameters
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const urlRoom = params.get('room');
+          const isSpecParam = params.get('spectate') === '1';
+          if (urlRoom && /^\d{4}$/.test(urlRoom)) {
+            setModeUI('online');
+            if (isSpecParam) {
+              setOnlineSubTab('spectate');
+              document.getElementById('spec-code-input').value = urlRoom;
+              document.getElementById('spec-status-text').textContent = `👀 관전 링크(${urlRoom})로 접속했습니다! 관전 입장하기를 눌러주세요.`;
+            } else {
+              setOnlineSubTab('join');
+              document.getElementById('join-code-input').value = urlRoom;
+              document.getElementById('join-status-text').textContent = `🔗 초대 링크(${urlRoom})로 접속했습니다! 대결 입장하기를 눌러주세요.`;
+            }
+          }
+        } catch (e) {}
+      }
+
+      /* --------------------------------------------------------------------------
+       * 8. MAIN 60FPS ANIMATION LOOP
+       * -------------------------------------------------------------------------- */
+      let lastTime = 0;
+      function animate(time) {
+        requestAnimationFrame(animate);
+        const dt = Math.min((time - lastTime) / 1000 || 0.016, 0.05);
+        lastTime = time;
+
+        // Oscillating Gauge Update (Active Player)
+        if (game.isHolding && game.phase === 'charging' && isMyTurn()) {
+          const speed = SPEED_PRESETS[game.speedIdx].rate;
+          game.gaugeVal += game.gaugeDir * speed * dt;
+          if (game.gaugeVal >= 100) {
+            game.gaugeVal = 100;
+            game.gaugeDir = -1;
+          } else if (game.gaugeVal <= 0) {
+            game.gaugeVal = 0;
+            game.gaugeDir = 1;
+          }
+          renderGaugeUI();
+
+          if (game.mode === 'online' && time - net.lastGaugeSend >= 33) {
+            net.lastGaugeSend = time;
+            sendNet({ type: 'gauge', val: Math.round(game.gaugeVal * 10) / 10, holding: true });
+          }
+        }
+
+        if (!threeReady) return;
+
+        // Camera Smooth Orbit
+        const lerpAmt = 1 - Math.exp(-5.5 * dt);
+        camState.pos.lerp(camState.targetPos, lerpAmt);
+        camState.lookAt.lerp(camState.targetLookAt, lerpAmt);
+
+        const offsetVec = camState.pos.clone().sub(camState.lookAt);
+        const spherical = new THREE.Spherical().setFromVector3(offsetVec);
+        spherical.theta += camState.orbitYaw;
+        spherical.phi = THREE.MathUtils.clamp(spherical.phi + camState.orbitPitch, 0.35, 1.35);
+        camera.position.copy(camState.lookAt).add(new THREE.Vector3().setFromSpherical(spherical));
+        camera.lookAt(camState.lookAt);
+
+        // Hand Pose Interpolation
+        const handLerp = 1 - Math.exp(-9.5 * dt);
+        handState.pos.lerp(handState.targetPos, handLerp);
+        handState.rot.x += (handState.targetRot.x - handState.rot.x) * handLerp;
+        handState.rot.y += (handState.targetRot.y - handState.rot.y) * handLerp;
+        handState.rot.z += (handState.targetRot.z - handState.rot.z) * handLerp;
+        handState.fingerCurl += (handState.targetFingerCurl - handState.fingerCurl) * handLerp;
+
+        handGroup.position.copy(handState.pos);
+        if (handState.tremble > 0) {
+          handGroup.position.x += (Math.random() - 0.5) * handState.tremble;
+          handGroup.position.y += (Math.random() - 0.5) * handState.tremble;
+        }
+        handGroup.rotation.copy(handState.rot);
+
+        if (handMeshParts.fingerPivots) {
+          handMeshParts.fingerPivots.forEach((p, idx) => {
+            p.rotation.x = handState.fingerCurl * (0.85 + idx * 0.04);
+          });
+          handMeshParts.thumbPivot.rotation.x = handState.fingerCurl * 0.55;
+        }
+        handGroup.updateMatrixWorld();
+
+        // Stones Physics / Arcs
+        const tempVec = new THREE.Vector3();
+        for (const st of stones) {
+          if (st.state === 'hand_palm' || st.state === 'hand_back') {
+            tempVec.copy(st.handOffset).applyMatrix4(handGroup.matrixWorld);
+            st.pos.lerp(tempVec, 1 - Math.exp(-18 * dt));
+            st.mesh.position.copy(st.pos);
+            st.mesh.rotation.x *= 0.9;
+            st.mesh.rotation.z *= 0.9;
+          } else if (st.state === 'air_arc' && st.arc) {
+            st.arc.elapsed += dt;
+            const t = Math.min(st.arc.elapsed / st.arc.duration, 1);
+            st.pos.lerpVectors(st.arc.startPos, st.arc.endPos, t);
+            st.pos.y += Math.sin(t * Math.PI) * st.arc.height;
+            st.mesh.position.copy(st.pos);
+            st.mesh.rotation.x += st.arc.spin.x * dt;
+            st.mesh.rotation.y += st.arc.spin.y * dt;
+            st.mesh.rotation.z += st.arc.spin.z * dt;
+            if (t >= 1) {
+              const cb = st.arc.onComplete;
+              st.arc = null;
+              if (cb) cb();
+            }
+          } else if (st.state === 'bounce') {
+            st.vel.y -= 14.5 * dt;
+            st.pos.addScaledVector(st.vel, dt);
+            st.mesh.rotation.x += st.rotVel.x * dt;
+            st.mesh.rotation.y += st.rotVel.y * dt;
+            st.mesh.rotation.z += st.rotVel.z * dt;
+            if (st.pos.y <= 0.28) {
+              st.pos.y = 0.28;
+              if (Math.abs(st.vel.y) > 0.75) {
+                st.vel.y = -st.vel.y * 0.42;
+                st.vel.x *= 0.72;
+                st.vel.z *= 0.72;
+                sound.playClack(0.18, 0.9);
+              } else {
+                st.vel.set(0, 0, 0);
+                st.rotVel.set(0, 0, 0);
+                st.state = 'floor';
+              }
+            }
+            st.mesh.position.copy(st.pos);
+          } else {
+            st.mesh.position.copy(st.pos);
+          }
+        }
+
+        // Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const pt = particles[i];
+          pt.life += dt;
+          pt.vel.y -= 9.5 * dt;
+          pt.mesh.position.addScaledVector(pt.vel, dt);
+          pt.mesh.rotation.x += pt.rotVel.x * dt;
+          pt.mesh.rotation.y += pt.rotVel.y * dt;
+          const prog = pt.life / pt.maxLife;
+          pt.mesh.material.opacity = Math.max(0, 1 - prog);
+          if (pt.life >= pt.maxLife) {
+            scene.remove(pt.mesh);
+            pt.mesh.geometry.dispose();
+            pt.mesh.material.dispose();
+            particles.splice(i, 1);
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      /* --------------------------------------------------------------------------
+       * 9. BOOTSTRAP ON LOAD
+       * -------------------------------------------------------------------------- */
+      window.addEventListener('load', () => {
+        initThreeScene();
+        bindUIEvents();
+        syncSpeedButtonsUI();
+        renderGaugeUI();
+        updateHUD();
+        requestAnimationFrame(animate);
+      });
+    })();
+  </script>
+</body>
+</html>
