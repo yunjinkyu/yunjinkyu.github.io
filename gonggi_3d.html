@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>3D 한국 전통 공기놀이 · 솔로 / 로컬 2인 / 온라인 대결 & 관전</title>
+  <title>3D 한국 전통 공기놀이 · 솔로 / 로컬 2인 / 온라인 대결 &amp; 관전</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Three.js r128 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- PeerJS (WebRTC P2P Multiplayer & Spectating) -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- PeerJS 1.5.2 (WebRTC P2P Multiplayer & Host-Hub Spectating) -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <!-- Google Fonts: Jua & Noto Sans KR -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -35,7 +35,7 @@
       height: 100%;
       overflow: hidden;
       font-family: 'Noto Sans KR', sans-serif;
-      background-color: #261911;
+      background-color: #7a624c;
       color: #fdf8f0;
     }
 
@@ -70,7 +70,7 @@
       position: fixed;
       inset: 0;
       z-index: 50;
-      background: rgba(0, 0, 0, 0.72);
+      background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
       display: flex;
@@ -82,18 +82,18 @@
 
     /* Warm Hanok Glassmorphic Panel */
     .glass-panel {
-      background: rgba(34, 22, 15, 0.85);
+      background: rgba(34, 22, 15, 0.86);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 224, 178, 0.25);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 224, 178, 0.28);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.42);
     }
 
     /* Tactile HOLD Button */
     .hold-btn {
       background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
       border: 3px solid #fef08a;
-      box-shadow: 0 6px 0 #92400e, 0 10px 24px rgba(217, 119, 6, 0.5);
+      box-shadow: 0 6px 0 #92400e, 0 10px 24px rgba(217, 119, 6, 0.45);
       transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
       touch-action: none;
     }
@@ -105,18 +105,18 @@
     .hold-btn:active:not(:disabled),
     .hold-btn.holding:not(:disabled) {
       transform: translateY(4px) scale(0.96);
-      box-shadow: 0 2px 0 #92400e, 0 4px 12px rgba(217, 119, 6, 0.4);
+      box-shadow: 0 2px 0 #92400e, 0 4px 12px rgba(217, 119, 6, 0.35);
       background: linear-gradient(180deg, #fcd34d 0%, #ea580c 100%);
     }
 
     .hold-btn.stage5-roll {
       background: linear-gradient(180deg, #f472b6 0%, #be185d 100%);
       border-color: #fbcfe8;
-      box-shadow: 0 6px 0 #831843, 0 10px 24px rgba(190, 24, 93, 0.5);
+      box-shadow: 0 6px 0 #831843, 0 10px 24px rgba(190, 24, 93, 0.45);
     }
 
     .hold-btn.stage5-roll:active:not(:disabled) {
-      box-shadow: 0 2px 0 #831843, 0 4px 12px rgba(190, 24, 93, 0.4);
+      box-shadow: 0 2px 0 #831843, 0 4px 12px rgba(190, 24, 93, 0.35);
     }
 
     .hold-btn:disabled {
@@ -329,13 +329,12 @@
     </header>
 
     <!-- ======================================================================
-         BOTTOM-LEFT: CHAT PANEL + EMOJI BAR + STAGE BADGE (Never blocks center 3D)
+         BOTTOM-LEFT: CHAT PANEL + EMOJI BAR + STAGE BADGE
          ====================================================================== -->
     <div class="fixed bottom-3 left-2.5 sm:left-4 z-20 pointer-events-none flex flex-col items-start gap-1.5 max-w-[calc(100vw-112px)] sm:max-w-[330px]">
 
       <!-- Online Real-Time Chat Panel (Collapsible) -->
       <div id="chat-wrapper" class="hidden pointer-events-auto w-[250px] sm:w-[300px] flex flex-col gap-1.5">
-        <!-- Expanded Chat Box -->
         <div id="chat-box" class="glass-panel rounded-2xl border border-amber-300/30 overflow-hidden flex flex-col">
           <div class="flex items-center justify-between px-3 py-1.5 bg-black/35 border-b border-white/10">
             <span class="text-[11px] font-bold text-amber-200">💬 실시간 채팅</span>
@@ -354,7 +353,6 @@
           </div>
         </div>
 
-        <!-- Collapsed Chat Toggle Button + Unread Badge -->
         <div class="flex items-center gap-1.5">
           <button id="chat-toggle-btn" type="button"
             class="hidden glass-panel rounded-full px-3 py-1.5 border border-amber-300/40 text-xs font-bold text-amber-200 hover:bg-white/15 flex items-center gap-1.5 cursor-pointer transition">
@@ -602,12 +600,11 @@
             <span class="text-xs text-amber-100/70">매 회차 게이지 10% 축소</span>
           </div>
 
-          <div class="grid grid-cols-5 gap-1.5">
+          <div class="grid grid-cols-4 gap-1.5">
             <button type="button" data-preset="5" class="preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">5점</button>
             <button type="button" data-preset="10" class="preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-400 text-stone-950 border border-amber-200 shadow transition cursor-pointer">10점</button>
             <button type="button" data-preset="15" class="preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">15점</button>
             <button type="button" data-preset="20" class="preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">20점</button>
-            <button type="button" data-preset="30" class="preset-btn py-2 rounded-xl text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 border border-white/15 text-amber-100 transition cursor-pointer">30점</button>
           </div>
 
           <div class="flex items-center gap-2">
@@ -759,9 +756,9 @@
         <div class="text-xs font-bold text-pink-300 mb-2">5단 손등 올리기 확률 (획득 점수)</div>
         <div class="grid grid-cols-3 gap-1.5 text-center text-[11px] sm:text-xs">
           <div class="bg-rose-500/15 rounded-lg py-1.5"><div class="text-rose-300 font-bold">0개 (실패)</div><div>5%</div></div>
-          <div class="bg-white/5 rounded-lg py-1.5"><div class="text-amber-200 font-bold">1개 (+1점)</div><div>10%</div></div>
+          <div class="bg-white/5 rounded-lg py-1.5"><div class="text-amber-200 font-bold">1개 (+1점)</div><div>15%</div></div>
           <div class="bg-white/5 rounded-lg py-1.5"><div class="text-amber-200 font-bold">2개 (+2점)</div><div>20%</div></div>
-          <div class="bg-emerald-500/15 rounded-lg py-1.5"><div class="text-emerald-200 font-bold">3개 (+3점)</div><div>25%</div></div>
+          <div class="bg-emerald-500/15 rounded-lg py-1.5"><div class="text-emerald-200 font-bold">3개 (+3점)</div><div>20%</div></div>
           <div class="bg-emerald-500/15 rounded-lg py-1.5"><div class="text-emerald-300 font-bold">4개 (+4점)</div><div>20%</div></div>
           <div class="bg-amber-500/20 rounded-lg py-1.5"><div class="text-amber-300 font-bold">5개 (+5점)</div><div>20%</div></div>
         </div>
@@ -785,6 +782,31 @@
         class="btn-primary w-full py-3 rounded-2xl font-display text-lg text-stone-950">
         메뉴로 돌아가기
       </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL 7: BACK-BUTTON EXIT CONFIRMATION MODAL (No window.confirm)
+       ======================================================================== -->
+  <div id="exit-confirm-modal" class="modal-backdrop modal-hidden">
+    <div class="glass-panel rounded-3xl max-w-sm w-full p-6 border-2 border-amber-400/60 text-center space-y-4">
+      <div class="text-4xl">🚪</div>
+      <div>
+        <h2 class="font-display text-2xl text-amber-300">정말로 나가시겠습니까?</h2>
+        <p class="text-xs sm:text-sm text-amber-100/85 mt-1.5 leading-relaxed">
+          진행 중인 게임 내용이 사라질 수 있습니다.
+        </p>
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button id="exit-cancel-btn" type="button"
+          class="py-3 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 text-sm font-bold text-white cursor-pointer transition">
+          계속 플레이
+        </button>
+        <button id="exit-leave-btn" type="button"
+          class="py-3 rounded-2xl bg-rose-500/85 hover:bg-rose-500 border border-rose-300/60 text-sm font-bold text-white cursor-pointer transition">
+          나가기
+        </button>
+      </div>
     </div>
   </div>
 
@@ -859,23 +881,26 @@
         }
       };
 
-      // Stage 5 Back-of-hand probabilities: 0(5%), 1(10%), 2(20%), 3(25%), 4(20%), 5(20%)
+      // Stage 5 Back-of-hand probabilities: 0(5%), 1(15%), 2(20%), 3(20%), 4(20%), 5(20%)
       const STAGE5_PROBS = [
         { count: 0, weight: 5 },
-        { count: 1, weight: 10 },
+        { count: 1, weight: 15 },
         { count: 2, weight: 20 },
-        { count: 3, weight: 25 },
+        { count: 3, weight: 20 },
         { count: 4, weight: 20 },
         { count: 5, weight: 20 }
       ];
 
       const STONE_COLORS = [
-        { hex: 0xef4444, emissive: 0x3b0707 }, // Red
-        { hex: 0xfacc15, emissive: 0x3b2c03 }, // Yellow
-        { hex: 0x22c55e, emissive: 0x052e16 }, // Green
-        { hex: 0x3b82f6, emissive: 0x0c1e4a }, // Blue
-        { hex: 0xa855f7, emissive: 0x2e0b4f }  // Purple
+        { hex: 0xdc2626, emissive: 0x3b0707 }, // Crimson
+        { hex: 0xf59e0b, emissive: 0x3f2403 }, // Amber
+        { hex: 0x16a34a, emissive: 0x052e16 }, // Emerald
+        { hex: 0x2563eb, emissive: 0x0b1f54 }, // Sapphire
+        { hex: 0x9333ea, emissive: 0x2e0b52 }  // Violet
       ];
+
+      // Compact stone resting Y: bottom (-0.12) sits flush on woven mat top (+0.06)
+      const STONE_FLOOR_Y = 0.18;
 
       const SPEED_PRESETS = [
         { label: '느림', rate: 82 },
@@ -893,7 +918,7 @@
       }
 
       /* --------------------------------------------------------------------------
-       * 2. WEB AUDIO API SOUND MANAGER (INCLUDING CHAT PING)
+       * 2. WEB AUDIO API SOUND MANAGER (DEFENSIVE TRY/CATCH)
        * -------------------------------------------------------------------------- */
       class SoundManager {
         constructor() {
@@ -1087,7 +1112,7 @@
       const sound = new SoundManager();
 
       /* --------------------------------------------------------------------------
-       * 3. THREE.JS 3D SCENE
+       * 3. THREE.JS 3D SCENE (LIGHTWEIGHT <=256px TEXTURES, HANOK, SLIM HAND)
        * -------------------------------------------------------------------------- */
       let scene = null, camera = null, renderer = null;
       let stones = [], particles = [];
@@ -1101,51 +1126,415 @@
 
       const handState = {
         pos: null, targetPos: null, rot: null, targetRot: null,
-        fingerCurl: 0.4, targetFingerCurl: 0.4, tremble: 0
+        fingerCurl: 0.36, targetFingerCurl: 0.36,
+        fingerSpread: 0.04, targetFingerSpread: 0.04,
+        tremble: 0
       };
 
       let PALM_OFFSETS = [];
       let BACK_OFFSETS = [];
 
+      // Fast 256px Korean Daecheongmaru wooden plank floor texture (rich walnut wood)
       function createWoodFloorTexture() {
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
+        canvas.width = 256;
+        canvas.height = 256;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#8b5a2b';
-        ctx.fillRect(0, 0, 512, 512);
-        const plankH = 64;
-        const tones = ['#946234', '#86562a', '#9e6b3b', '#7d4f25', '#8f5d2f'];
+        ctx.fillStyle = '#5e3d24';
+        ctx.fillRect(0, 0, 256, 256);
+
+        const plankH = 32;
+        const tones = ['#69452a', '#573821', '#704b2f', '#50331d', '#624026'];
         for (let i = 0; i < 8; i++) {
+          const y0 = i * plankH;
           ctx.fillStyle = tones[i % tones.length];
-          ctx.fillRect(0, i * plankH, 512, plankH - 2);
-          ctx.fillStyle = 'rgba(38, 20, 8, 0.5)';
-          ctx.fillRect(0, (i + 1) * plankH - 2, 512, 2);
+          ctx.fillRect(0, y0, 256, plankH - 1.5);
+
+          ctx.strokeStyle = 'rgba(32, 16, 6, 0.22)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, y0 + 10);
+          ctx.lineTo(256, y0 + 12);
+          ctx.moveTo(0, y0 + 22);
+          ctx.lineTo(256, y0 + 20);
+          ctx.stroke();
+
+          ctx.fillStyle = 'rgba(28, 14, 5, 0.58)';
+          ctx.fillRect(0, y0 + plankH - 1.5, 256, 1.5);
+
+          const jointX = ((i * 89 + 48) % 210) + 20;
+          ctx.fillStyle = 'rgba(28, 14, 5, 0.48)';
+          ctx.fillRect(jointX, y0, 1.5, plankH - 1.5);
         }
+
         const tex = new THREE.CanvasTexture(canvas);
         tex.wrapS = THREE.RepeatWrapping;
         tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(4, 4);
+        tex.repeat.set(6, 6);
         return tex;
       }
 
+      // Fast 256px Korean traditional woven mat (돗자리/화문석) texture - muted straw beige
       function createWovenMatTexture() {
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
+        canvas.width = 256;
+        canvas.height = 256;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#d9b97e';
-        ctx.fillRect(0, 0, 512, 512);
-        for (let y = 0; y < 512; y += 8) {
-          ctx.fillStyle = y % 16 === 0 ? 'rgba(181, 137, 68, 0.28)' : 'rgba(255, 244, 214, 0.25)';
-          ctx.fillRect(0, y, 512, 4);
+
+        const grad = ctx.createRadialGradient(128, 128, 10, 128, 128, 128);
+        grad.addColorStop(0, '#c0a37a');
+        grad.addColorStop(0.75, '#b89b72');
+        grad.addColorStop(1, '#9e825a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+
+        for (let y = 0; y < 256; y += 4) {
+          ctx.fillStyle = y % 8 === 0 ? 'rgba(92, 65, 32, 0.22)' : 'rgba(240, 220, 185, 0.12)';
+          ctx.fillRect(0, y, 256, 2);
         }
-        ctx.strokeStyle = '#9a3412';
-        ctx.lineWidth = 18;
+
+        ctx.strokeStyle = 'rgba(124, 34, 34, 0.24)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(256, 256, 232, 0, Math.PI * 2);
+        ctx.arc(128, 128, 70, 0, Math.PI * 2);
         ctx.stroke();
+
+        // Deep crimson & antique gold traditional silk border rings
+        ctx.strokeStyle = '#7c2222';
+        ctx.lineWidth = 12;
+        ctx.beginPath();
+        ctx.arc(128, 128, 118, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#b88d3a';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(128, 128, 110, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#c9a152';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(128, 128, 124, 0, Math.PI * 2);
+        ctx.stroke();
+
         return new THREE.CanvasTexture(canvas);
+      }
+
+      // Fast 256px softly lit warm amber-cream Hanji sliding lattice door texture
+      function createHanjiDoorTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        const grad = ctx.createRadialGradient(128, 108, 16, 128, 128, 180);
+        grad.addColorStop(0, '#d8c6ab');
+        grad.addColorStop(0.58, '#cbb89d');
+        grad.addColorStop(1, '#b09a7c');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+
+        // Changsal wooden lattice grid
+        ctx.strokeStyle = '#52321c';
+        ctx.lineWidth = 5;
+        for (let c = 1; c < 4; c++) {
+          const x = (c / 4) * 256;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, 256);
+          ctx.stroke();
+        }
+        for (let r = 1; r < 5; r++) {
+          const y = (r / 5) * 256;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(256, y);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = '#3b2212';
+        ctx.lineWidth = 14;
+        ctx.strokeRect(0, 0, 256, 256);
+
+        return new THREE.CanvasTexture(canvas);
+      }
+
+      function buildHanokBackdrop() {
+        const backdrop = new THREE.Group();
+        const woodBeamMat = new THREE.MeshStandardMaterial({ color: 0x472b18, roughness: 0.72, metalness: 0.04 });
+        const plasterWallMat = new THREE.MeshStandardMaterial({ color: 0xcbb89d, roughness: 0.88 });
+        const hanjiDoorMat = new THREE.MeshStandardMaterial({
+          map: createHanjiDoorTexture(),
+          emissive: 0xdcb98a,
+          emissiveIntensity: 0.08,
+          roughness: 0.65
+        });
+
+        // Lower wooden wainscot
+        const baseWall = new THREE.Mesh(new THREE.BoxGeometry(22, 1.35, 0.35), woodBeamMat);
+        baseWall.position.set(0, 0.675, -5.8);
+        baseWall.receiveShadow = true;
+        backdrop.add(baseWall);
+
+        // Side plaster walls
+        const leftWall = new THREE.Mesh(new THREE.BoxGeometry(5.2, 7.6, 0.3), plasterWallMat);
+        leftWall.position.set(-8.6, 3.8, -5.85);
+        backdrop.add(leftWall);
+
+        const rightWall = new THREE.Mesh(new THREE.BoxGeometry(5.2, 7.6, 0.3), plasterWallMat);
+        rightWall.position.set(8.6, 3.8, -5.85);
+        backdrop.add(rightWall);
+
+        // 4 Hanji sliding lattice doors
+        const doorW = 2.95;
+        const doorH = 5.4;
+        for (let i = 0; i < 4; i++) {
+          const dx = (i - 1.5) * 2.92;
+          const dz = (i === 1 || i === 2) ? -5.72 : -5.88;
+          const door = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.09), hanjiDoorMat);
+          door.position.set(dx, 1.35 + doorH / 2, dz);
+          backdrop.add(door);
+        }
+
+        // Horizontal wooden beams
+        const topBeam = new THREE.Mesh(new THREE.BoxGeometry(22, 0.34, 0.42), woodBeamMat);
+        topBeam.position.set(0, 6.85, -5.7);
+        backdrop.add(topBeam);
+
+        const midSill = new THREE.Mesh(new THREE.BoxGeometry(22, 0.22, 0.44), woodBeamMat);
+        midSill.position.set(0, 1.35, -5.7);
+        backdrop.add(midSill);
+
+        // Vertical wooden Hanok pillars
+        [-6.05, 0, 6.05].forEach((px, idx) => {
+          const pillar = new THREE.Mesh(new THREE.BoxGeometry(idx === 1 ? 0.16 : 0.36, 7.8, 0.44), woodBeamMat);
+          pillar.position.set(px, 3.9, idx === 1 ? -5.8 : -5.66);
+          pillar.castShadow = true;
+          backdrop.add(pillar);
+        });
+
+        return backdrop;
+      }
+
+      /**
+       * Builds a slender, graceful feminine 3D hand with a thin contoured palm,
+       * narrow wrist, cream Hanbok silk sleeve (peach inner lining + gold trim),
+       * and 5 slim, 3-joint articulated fingers with soft peach-tinted oval nails.
+       */
+      function buildRefinedHand() {
+        const group = new THREE.Group();
+
+        const skinMat = new THREE.MeshStandardMaterial({
+          color: 0xe8b89a,
+          roughness: 0.58,
+          metalness: 0.02
+        });
+        const rosyTipMat = new THREE.MeshStandardMaterial({
+          color: 0xe0a487,
+          roughness: 0.52,
+          metalness: 0.02
+        });
+        const nailMat = new THREE.MeshStandardMaterial({
+          color: 0xf7c5cb,
+          roughness: 0.16,
+          metalness: 0.06
+        });
+        const silkCuffMat = new THREE.MeshStandardMaterial({
+          color: 0xf2e6d5,
+          roughness: 0.58,
+          metalness: 0.03
+        });
+        const innerSleeveMat = new THREE.MeshStandardMaterial({
+          color: 0xf0cbb8,
+          roughness: 0.62,
+          metalness: 0.02
+        });
+        const goldTrimMat = new THREE.MeshStandardMaterial({
+          color: 0xc99634,
+          roughness: 0.30,
+          metalness: 0.52
+        });
+
+        // 1. Slim, thin contoured palm
+        const palm = new THREE.Mesh(new THREE.SphereGeometry(0.47, 24, 18), skinMat);
+        palm.scale.set(0.90, 0.165, 1.06);
+        palm.position.set(0, 0, -0.02);
+        palm.castShadow = true;
+        palm.receiveShadow = true;
+        group.add(palm);
+
+        const palmBase = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.24, 0.44, 20), skinMat);
+        palmBase.rotation.x = Math.PI / 2;
+        palmBase.scale.set(1.12, 1.0, 0.28);
+        palmBase.position.set(0, -0.005, 0.36);
+        palmBase.castShadow = true;
+        group.add(palmBase);
+
+        const knuckleBridge = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.082, 0.72, 16), skinMat);
+        knuckleBridge.rotation.z = Math.PI / 2;
+        knuckleBridge.position.set(0, 0.0, -0.44);
+        knuckleBridge.scale.set(1, 0.85, 0.95);
+        knuckleBridge.castShadow = true;
+        group.add(knuckleBridge);
+
+        const thumbPad = new THREE.Mesh(new THREE.SphereGeometry(0.20, 16, 12), skinMat);
+        thumbPad.scale.set(0.92, 0.42, 1.25);
+        thumbPad.position.set(-0.24, 0.024, 0.14);
+        thumbPad.castShadow = true;
+        group.add(thumbPad);
+
+        const outerPad = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 12), skinMat);
+        outerPad.scale.set(0.85, 0.45, 1.55);
+        outerPad.position.set(0.29, 0.016, 0.12);
+        outerPad.castShadow = true;
+        group.add(outerPad);
+
+        // 2. Narrow wrist & Cream Hanbok Silk Sleeve with Peach Lining & Gold Trim
+        const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.24, 0.62, 20), skinMat);
+        wrist.rotation.x = Math.PI / 2;
+        wrist.scale.set(1.06, 1.0, 0.62);
+        wrist.position.set(0, -0.008, 0.74);
+        wrist.castShadow = true;
+        group.add(wrist);
+
+        const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.49, 1.08, 24), silkCuffMat);
+        cuff.rotation.x = Math.PI / 2;
+        cuff.scale.set(1.06, 1.0, 0.80);
+        cuff.position.set(0, -0.015, 1.44);
+        cuff.castShadow = true;
+        group.add(cuff);
+
+        const cuffLining = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.028, 10, 24), innerSleeveMat);
+        cuffLining.scale.set(1.06, 0.80, 1);
+        cuffLining.position.set(0, -0.015, 0.91);
+        group.add(cuffLining);
+
+        const cuffTrim = new THREE.Mesh(new THREE.TorusGeometry(0.335, 0.022, 10, 24), goldTrimMat);
+        cuffTrim.scale.set(1.06, 0.80, 1);
+        cuffTrim.position.set(0, -0.015, 0.95);
+        group.add(cuffTrim);
+
+        // 3. Four Slim, Tapered, 3-Joint Articulated Fingers
+        const fingerSpecs = [
+          { x: -0.285, z: -0.44, rBase: 0.072, len1: 0.34, len2: 0.25, len3: 0.20, spreadSign: -1.15 },
+          { x: -0.095, z: -0.48, rBase: 0.075, len1: 0.38, len2: 0.28, len3: 0.22, spreadSign: -0.32 },
+          { x: 0.095,  z: -0.45, rBase: 0.070, len1: 0.35, len2: 0.26, len3: 0.20, spreadSign: 0.42 },
+          { x: 0.275,  z: -0.39, rBase: 0.060, len1: 0.27, len2: 0.20, len3: 0.16, spreadSign: 1.18 }
+        ];
+
+        const fingerJoints = [];
+
+        fingerSpecs.forEach((spec) => {
+          const knucklePivot = new THREE.Group();
+          knucklePivot.position.set(spec.x, 0.0, spec.z);
+
+          knucklePivot.add(new THREE.Mesh(new THREE.SphereGeometry(spec.rBase * 1.03, 12, 10), skinMat));
+
+          const r1 = spec.rBase * 0.88;
+          const seg1Geo = new THREE.CylinderGeometry(r1, spec.rBase, spec.len1, 14);
+          seg1Geo.rotateX(Math.PI / 2);
+          const seg1Mesh = new THREE.Mesh(seg1Geo, skinMat);
+          seg1Mesh.position.set(0, 0, -spec.len1 / 2);
+          seg1Mesh.castShadow = true;
+          knucklePivot.add(seg1Mesh);
+
+          const midPivot = new THREE.Group();
+          midPivot.position.set(0, 0, -spec.len1);
+          midPivot.add(new THREE.Mesh(new THREE.SphereGeometry(r1 * 1.02, 12, 10), skinMat));
+
+          const r2 = spec.rBase * 0.76;
+          const seg2Geo = new THREE.CylinderGeometry(r2, r1, spec.len2, 14);
+          seg2Geo.rotateX(Math.PI / 2);
+          const seg2Mesh = new THREE.Mesh(seg2Geo, skinMat);
+          seg2Mesh.position.set(0, 0, -spec.len2 / 2);
+          seg2Mesh.castShadow = true;
+          midPivot.add(seg2Mesh);
+
+          const distPivot = new THREE.Group();
+          distPivot.position.set(0, 0, -spec.len2);
+          distPivot.add(new THREE.Mesh(new THREE.SphereGeometry(r2 * 1.02, 12, 10), skinMat));
+
+          const rTip = spec.rBase * 0.60;
+          const seg3Geo = new THREE.CylinderGeometry(rTip, r2, spec.len3, 14);
+          seg3Geo.rotateX(Math.PI / 2);
+          const seg3Mesh = new THREE.Mesh(seg3Geo, rosyTipMat);
+          seg3Mesh.position.set(0, 0, -spec.len3 / 2);
+          seg3Mesh.castShadow = true;
+          distPivot.add(seg3Mesh);
+
+          const tipSphere = new THREE.Mesh(new THREE.SphereGeometry(rTip * 1.02, 12, 10), rosyTipMat);
+          tipSphere.scale.set(0.95, 0.88, 1.18);
+          tipSphere.position.set(0, 0, -spec.len3);
+          distPivot.add(tipSphere);
+
+          const nail = new THREE.Mesh(new THREE.SphereGeometry(rTip * 0.80, 10, 8), nailMat);
+          nail.scale.set(0.86, 0.22, 1.55);
+          nail.position.set(0, -rTip * 0.82, -spec.len3 + rTip * 0.25);
+          distPivot.add(nail);
+
+          midPivot.add(distPivot);
+          knucklePivot.add(midPivot);
+          group.add(knucklePivot);
+          fingerJoints.push({ knucklePivot, midPivot, distPivot, spreadSign: spec.spreadSign });
+        });
+
+        // 4. Slender 3-Joint Articulated Opposable Thumb
+        const thumbBasePivot = new THREE.Group();
+        thumbBasePivot.position.set(-0.37, 0.015, 0.10);
+        thumbBasePivot.rotation.set(0.06, 0.60, -0.18);
+        thumbBasePivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.088, 12, 10), skinMat));
+
+        const tLen1 = 0.24;
+        const tSeg1Geo = new THREE.CylinderGeometry(0.076, 0.086, tLen1, 14);
+        tSeg1Geo.rotateX(Math.PI / 2);
+        const tSeg1 = new THREE.Mesh(tSeg1Geo, skinMat);
+        tSeg1.position.set(0, 0, -tLen1 / 2);
+        tSeg1.castShadow = true;
+        thumbBasePivot.add(tSeg1);
+
+        const thumbMidPivot = new THREE.Group();
+        thumbMidPivot.position.set(0, 0, -tLen1);
+        thumbMidPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.077, 12, 10), skinMat));
+
+        const tLen2 = 0.22;
+        const tSeg2Geo = new THREE.CylinderGeometry(0.066, 0.075, tLen2, 14);
+        tSeg2Geo.rotateX(Math.PI / 2);
+        const tSeg2 = new THREE.Mesh(tSeg2Geo, skinMat);
+        tSeg2.position.set(0, 0, -tLen2 / 2);
+        tSeg2.castShadow = true;
+        thumbMidPivot.add(tSeg2);
+
+        const thumbDistPivot = new THREE.Group();
+        thumbDistPivot.position.set(0, 0, -tLen2);
+        thumbDistPivot.add(new THREE.Mesh(new THREE.SphereGeometry(0.067, 12, 10), skinMat));
+
+        const tLen3 = 0.19;
+        const tSeg3Geo = new THREE.CylinderGeometry(0.054, 0.065, tLen3, 14);
+        tSeg3Geo.rotateX(Math.PI / 2);
+        const tSeg3 = new THREE.Mesh(tSeg3Geo, rosyTipMat);
+        tSeg3.position.set(0, 0, -tLen3 / 2);
+        tSeg3.castShadow = true;
+        thumbDistPivot.add(tSeg3);
+
+        const tTip = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 10), rosyTipMat);
+        tTip.scale.set(0.95, 0.88, 1.15);
+        tTip.position.set(0, 0, -tLen3);
+        thumbDistPivot.add(tTip);
+
+        const tNail = new THREE.Mesh(new THREE.SphereGeometry(0.046, 10, 8), nailMat);
+        tNail.scale.set(0.88, 0.22, 1.50);
+        tNail.position.set(0, -0.047, -tLen3 + 0.015);
+        thumbDistPivot.add(tNail);
+
+        thumbMidPivot.add(thumbDistPivot);
+        thumbBasePivot.add(thumbMidPivot);
+        group.add(thumbBasePivot);
+
+        return {
+          group,
+          parts: { fingerJoints, thumbBasePivot, thumbMidPivot, thumbDistPivot }
+        };
       }
 
       function initThreeScene() {
@@ -1164,77 +1553,123 @@
           handState.rot = new THREE.Euler(-0.08, 0, 0);
           handState.targetRot = new THREE.Euler(-0.08, 0, 0);
 
+          // Non-overlapping palm & back-of-hand offsets sized for compact ~0.18 radius stones
           PALM_OFFSETS = [
-            new THREE.Vector3(-0.28, 0.26, -0.18),
-            new THREE.Vector3(0.28, 0.26, -0.18),
-            new THREE.Vector3(0.0, 0.28, 0.05),
-            new THREE.Vector3(-0.24, 0.26, 0.24),
-            new THREE.Vector3(0.24, 0.26, 0.24)
+            new THREE.Vector3(-0.17, 0.175, -0.17),
+            new THREE.Vector3( 0.17, 0.175, -0.17),
+            new THREE.Vector3( 0.00, 0.195, -0.01),
+            new THREE.Vector3(-0.16, 0.175,  0.15),
+            new THREE.Vector3( 0.16, 0.175,  0.15)
           ];
           BACK_OFFSETS = [
-            new THREE.Vector3(-0.32, -0.28, -0.18),
-            new THREE.Vector3(0.0, -0.28, -0.26),
-            new THREE.Vector3(0.32, -0.28, -0.18),
-            new THREE.Vector3(-0.18, -0.28, 0.14),
-            new THREE.Vector3(0.18, -0.28, 0.14)
+            new THREE.Vector3(-0.18, -0.196, -0.15),
+            new THREE.Vector3( 0.00, -0.198, -0.24),
+            new THREE.Vector3( 0.18, -0.196, -0.15),
+            new THREE.Vector3(-0.12, -0.196,  0.09),
+            new THREE.Vector3( 0.12, -0.196,  0.09)
           ];
 
           scene = new THREE.Scene();
-          scene.background = new THREE.Color(0x261911);
-          scene.fog = new THREE.FogExp2(0x261911, 0.04);
+          scene.background = new THREE.Color(0x7a624c);
+          scene.fog = new THREE.FogExp2(0x7a624c, 0.026);
 
           const w = container.clientWidth || window.innerWidth;
           const h = container.clientHeight || window.innerHeight;
-          camera = new THREE.PerspectiveCamera(44, w / h, 0.1, 60);
+          camera = new THREE.PerspectiveCamera(44, w / h, 0.1, 70);
           camera.position.copy(camState.pos);
           camera.lookAt(camState.lookAt);
 
-          renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+          renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+          renderer.setClearColor(0x7a624c, 1);
           renderer.setSize(w, h);
           renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
           renderer.shadowMap.enabled = true;
           renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+          renderer.toneMapping = THREE.ACESFilmicToneMapping;
+          renderer.toneMappingExposure = 0.85;
           container.appendChild(renderer.domElement);
 
-          // Lights
-          scene.add(new THREE.HemisphereLight(0xfff3db, 0x4a2f1d, 0.78));
-          const keyLight = new THREE.DirectionalLight(0xffe6bd, 1.15);
-          keyLight.position.set(4.5, 9.5, 5.5);
+          // Cozy Warm Dimmed Hanok Lighting for Clear 3D Shading & Contrast
+          scene.add(new THREE.AmbientLight(0xffe6cc, 0.35));
+          scene.add(new THREE.HemisphereLight(0xffdcb8, 0x4a3525, 0.38));
+
+          // Warm Key Light from Upper-Left-Front casting crisp soft shadows
+          const keyLight = new THREE.DirectionalLight(0xfff0d8, 0.95);
+          keyLight.position.set(-4.2, 9.2, 5.2);
           keyLight.castShadow = true;
           keyLight.shadow.mapSize.width = 1024;
           keyLight.shadow.mapSize.height = 1024;
+          keyLight.shadow.camera.left = -4.5;
+          keyLight.shadow.camera.right = 4.5;
+          keyLight.shadow.camera.top = 4.5;
+          keyLight.shadow.camera.bottom = -4.5;
+          keyLight.shadow.bias = -0.0005;
           scene.add(keyLight);
 
-          // Ondol Floor
-          const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(28, 28),
-            new THREE.MeshStandardMaterial({ map: createWoodFloorTexture(), roughness: 0.65 })
-          );
-          floor.rotation.x = -Math.PI / 2;
-          floor.receiveShadow = true;
-          scene.add(floor);
+          // Subtle Warm Rim Light from Behind-Right to cleanly outline fingers and palm
+          const rimLight = new THREE.DirectionalLight(0xffcf99, 0.35);
+          rimLight.position.set(3.8, 4.8, -4.6);
+          scene.add(rimLight);
 
-          // Traditional Woven Mat
-          const matGeo = new THREE.CylinderGeometry(3.55, 3.6, 0.06, 48);
-          const matSide = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.85 });
-          const matTop = new THREE.MeshStandardMaterial({ map: createWovenMatTexture(), roughness: 0.82 });
-          const matMesh = new THREE.Mesh(matGeo, [matSide, matTop, matSide]);
-          matMesh.position.y = 0.03;
+          // 1. Korean Daecheongmaru Wooden Plank Floor at y = 0
+          const floorMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(42, 42),
+            new THREE.MeshStandardMaterial({
+              map: createWoodFloorTexture(),
+              roughness: 0.72,
+              metalness: 0.04
+            })
+          );
+          floorMesh.rotation.x = -Math.PI / 2;
+          floorMesh.position.y = 0;
+          floorMesh.receiveShadow = true;
+          scene.add(floorMesh);
+
+          // 2. Traditional Round Woven Mat (돗자리/화문석) at y = 0..0.06
+          const matTopMat = new THREE.MeshStandardMaterial({
+            map: createWovenMatTexture(),
+            roughness: 0.82,
+            metalness: 0.02
+          });
+          const matSideMat = new THREE.MeshStandardMaterial({
+            color: 0x7c2222,
+            roughness: 0.65,
+            metalness: 0.06
+          });
+          const matMesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(2.55, 2.58, 0.06, 48),
+            [matSideMat, matTopMat, matSideMat]
+          );
+          matMesh.position.set(0, 0.03, -0.05);
           matMesh.receiveShadow = true;
           scene.add(matMesh);
 
-          // 5 Faceted Gonggi Stones
+          const matRim = new THREE.Mesh(
+            new THREE.TorusGeometry(2.56, 0.024, 10, 56),
+            new THREE.MeshStandardMaterial({ color: 0xb88d3a, roughness: 0.38, metalness: 0.36 })
+          );
+          matRim.rotation.x = Math.PI / 2;
+          matRim.position.set(0, 0.045, -0.05);
+          scene.add(matRim);
+
+          // 3. Hanok Sliding Lattice Doors & Wooden Pillars Backdrop
+          scene.add(buildHanokBackdrop());
+
+          // 4. Five Compact 8-Sided Gem-like Gonggi Stones (radius ~0.185, height 0.24)
           const profile = [
-            new THREE.Vector2(0.0, -0.22),
-            new THREE.Vector2(0.20, -0.22),
-            new THREE.Vector2(0.27, -0.14),
-            new THREE.Vector2(0.28, 0.08),
-            new THREE.Vector2(0.22, 0.20),
-            new THREE.Vector2(0.11, 0.24),
-            new THREE.Vector2(0.0, 0.24)
+            new THREE.Vector2(0.000, -0.120),
+            new THREE.Vector2(0.125, -0.120),
+            new THREE.Vector2(0.175, -0.072),
+            new THREE.Vector2(0.185,  0.042),
+            new THREE.Vector2(0.145,  0.102),
+            new THREE.Vector2(0.072,  0.120),
+            new THREE.Vector2(0.000,  0.120)
           ];
-          const stoneGeo = new THREE.LatheGeometry(profile, 7);
+          const stoneGeo = new THREE.LatheGeometry(profile, 8);
           stoneGeo.computeVertexNormals();
+
+          const contactShadowGeo = new THREE.CircleGeometry(0.195, 20);
+          contactShadowGeo.rotateX(-Math.PI / 2);
 
           STONE_COLORS.forEach((col, i) => {
             const group = new THREE.Group();
@@ -1243,20 +1678,34 @@
               new THREE.MeshStandardMaterial({
                 color: col.hex,
                 emissive: col.emissive,
-                emissiveIntensity: 0.2,
-                roughness: 0.22,
-                metalness: 0.1
+                emissiveIntensity: 0.22,
+                roughness: 0.16,
+                metalness: 0.16
               })
             );
             body.castShadow = true;
             body.receiveShadow = true;
             group.add(body);
             scene.add(group);
+
+            const shadowMesh = new THREE.Mesh(
+              contactShadowGeo,
+              new THREE.MeshBasicMaterial({
+                color: 0x1c0d04,
+                transparent: true,
+                opacity: 0.38,
+                depthWrite: false
+              })
+            );
+            shadowMesh.position.set((i - 2) * 0.56, 0.064, -0.1);
+            scene.add(shadowMesh);
+
             stones.push({
               id: i,
               mesh: group,
+              shadow: shadowMesh,
               state: 'floor',
-              pos: new THREE.Vector3((i - 2) * 0.78, 0.28, -0.1),
+              pos: new THREE.Vector3((i - 2) * 0.56, STONE_FLOOR_Y, -0.1),
               vel: new THREE.Vector3(),
               rotVel: new THREE.Vector3(),
               arc: null,
@@ -1264,49 +1713,10 @@
             });
           });
 
-          // Stylized 3D Hand
-          handGroup = new THREE.Group();
-          const skinMat = new THREE.MeshStandardMaterial({ color: 0xf4c7a3, roughness: 0.55 });
-          const sleeveMat = new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.78 });
-
-          const palm = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.24, 1.15), skinMat);
-          palm.castShadow = true;
-          handGroup.add(palm);
-
-          const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 0.65, 16), skinMat);
-          wrist.rotation.x = Math.PI / 2;
-          wrist.position.set(0, -0.02, 0.82);
-          handGroup.add(wrist);
-
-          const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.47, 0.54, 1.2, 16), sleeveMat);
-          sleeve.rotation.x = Math.PI / 2;
-          sleeve.position.set(0, -0.02, 1.55);
-          handGroup.add(sleeve);
-
-          const fingerPivots = [];
-          const fingerLengths = [0.68, 0.78, 0.74, 0.58];
-          const fingerX = [-0.42, -0.14, 0.14, 0.42];
-          for (let i = 0; i < 4; i++) {
-            const pivot = new THREE.Group();
-            pivot.position.set(fingerX[i], 0.0, -0.56);
-            const len = fingerLengths[i];
-            const fMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, len), skinMat);
-            fMesh.position.set(0, 0, -len / 2);
-            fMesh.castShadow = true;
-            pivot.add(fMesh);
-            handGroup.add(pivot);
-            fingerPivots.push(pivot);
-          }
-
-          const thumbPivot = new THREE.Group();
-          thumbPivot.position.set(-0.62, 0.0, 0.12);
-          thumbPivot.rotation.y = 0.55;
-          const thumbMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.19, 0.58), skinMat);
-          thumbMesh.position.set(0, 0, -0.28);
-          thumbPivot.add(thumbMesh);
-          handGroup.add(thumbPivot);
-
-          handMeshParts = { fingerPivots, thumbPivot };
+          // 5. Slender Feminine 3D Hand
+          const builtHand = buildRefinedHand();
+          handGroup = builtHand.group;
+          handMeshParts = builtHand.parts;
           handGroup.position.copy(handState.pos);
           scene.add(handGroup);
 
@@ -1372,52 +1782,116 @@
           camState.targetPos.set(0, 5.2, 5.9);
           camState.targetLookAt.set(0.25, 0.55, 0.15);
         } else if (mode === 'toss') {
-          camState.targetPos.set(0, 5.0, 6.3);
-          camState.targetLookAt.set(0.25, 1.45, 0.0);
+          camState.targetPos.set(0, 5.0, 6.4);
+          camState.targetLookAt.set(0.2, 1.35, 0.0);
         } else if (mode === 'stage5') {
           camState.targetPos.set(0, 3.8, 4.5);
           camState.targetLookAt.set(0.2, 1.25, 0.8);
         }
       }
 
-      function setHandPose(pose) {
+      function setHandPose(pose, targetVec = null) {
         if (!threeReady) return;
         if (pose === 'ready_palm') {
           handState.targetPos.set(0.15, 1.35, 2.0);
           handState.targetRot.set(-0.08, 0, 0);
-          handState.targetFingerCurl = 0.4;
+          handState.targetFingerCurl = 0.36;
+          handState.targetFingerSpread = 0.04;
           handState.tremble = 0;
         } else if (pose === 'toss_up') {
-          handState.targetPos.set(0.1, 2.05, 1.5);
-          handState.targetRot.set(0.28, 0, 0);
-          handState.targetFingerCurl = 0.1;
-        } else if (pose === 'sweep_floor') {
-          handState.targetPos.set(0.0, 0.52, 0.12);
-          handState.targetRot.set(-0.32, 0, 0);
-          handState.targetFingerCurl = 0.65;
+          handState.targetPos.set(0.1, 2.1, 1.48);
+          handState.targetRot.set(0.32, 0, 0);
+          handState.targetFingerCurl = 0.08;
+          handState.targetFingerSpread = 0.14;
+        } else if (pose === 'swoop_open') {
+          const tx = targetVec ? targetVec.x : 0;
+          const tz = targetVec ? targetVec.z : 0;
+          handState.targetPos.set(tx, 0.46, tz + 0.38);
+          handState.targetRot.set(-0.42, 0, 2.75);
+          handState.targetFingerCurl = 0.14;
+          handState.targetFingerSpread = 0.18;
+        } else if (pose === 'grab_floor') {
+          const tx = targetVec ? targetVec.x : 0;
+          const tz = targetVec ? targetVec.z : 0;
+          handState.targetPos.set(tx, 0.30, tz + 0.22);
+          handState.targetRot.set(-0.26, 0, 2.55);
+          handState.targetFingerCurl = 0.96;
+          handState.targetFingerSpread = 0.0;
+        } else if (pose === 'place_floor') {
+          const tx = targetVec ? targetVec.x : 0;
+          const tz = targetVec ? targetVec.z : 0;
+          handState.targetPos.set(tx, 0.34, tz + 0.28);
+          handState.targetRot.set(-0.28, 0, 2.85);
+          handState.targetFingerCurl = 0.06;
+          handState.targetFingerSpread = 0.16;
         } else if (pose === 'catch_palm') {
-          handState.targetPos.set(0.1, 1.45, 1.4);
-          handState.targetRot.set(0.05, 0, 0);
-          handState.targetFingerCurl = 0.85;
+          handState.targetPos.set(0.1, 1.48, 1.38);
+          handState.targetRot.set(0.06, 0, 0);
+          handState.targetFingerCurl = 0.64;
+          handState.targetFingerSpread = 0.03;
+        } else if (pose === 'catch_close') {
+          handState.targetPos.set(0.1, 1.42, 1.42);
+          handState.targetRot.set(0.02, 0, 0);
+          handState.targetFingerCurl = 0.94;
+          handState.targetFingerSpread = 0.0;
+        } else if (pose === 'miss_catch') {
+          handState.targetPos.set(0.45, 1.35, 1.65);
+          handState.targetRot.set(-0.12, 0.18, -0.25);
+          handState.targetFingerCurl = 0.15;
+          handState.targetFingerSpread = 0.16;
         } else if (pose === 'back_of_hand') {
-          handState.targetPos.set(0.0, 1.35, 1.15);
+          handState.targetPos.set(0.0, 1.28, 1.15);
           handState.targetRot.set(0.02, 0, Math.PI);
+          handState.targetFingerCurl = 0.04;
+          handState.targetFingerSpread = 0.01;
+        } else if (pose === 'snatch_flick') {
+          handState.targetPos.set(0.0, 1.62, 1.08);
+          handState.targetRot.set(0.28, 0, Math.PI);
           handState.targetFingerCurl = 0.02;
-        } else if (pose === 'snatch') {
-          handState.targetPos.set(0.0, 1.75, 1.05);
-          handState.targetRot.set(-0.15, 0, 0);
+          handState.targetFingerSpread = 0.05;
+        } else if (pose === 'snatch_hover_top') {
+          // Rise ABOVE the airborne stones, palm facing down, fingers open
+          handState.targetPos.set(0.0, 2.88, 1.05);
+          handState.targetRot.set(-0.36, 0, Math.PI);
+          handState.targetFingerCurl = 0.12;
+          handState.targetFingerSpread = 0.22;
+        } else if (pose === 'snatch_strike_down') {
+          // Swift top-to-bottom downward snatching arc closing fingers mid-air
+          handState.targetPos.set(0.0, 1.56, 1.06);
+          handState.targetRot.set(-0.54, 0, Math.PI);
+          handState.targetFingerCurl = 1.0;
+          handState.targetFingerSpread = 0.0;
+        } else if (pose === 'snatch_twist_in') {
+          // Graceful inward wrist twist after catching from above
+          handState.targetPos.set(0.05, 1.50, 1.18);
+          handState.targetRot.set(0.08, -0.14, 0.36);
           handState.targetFingerCurl = 0.95;
+          handState.targetFingerSpread = 0.0;
+        } else if (pose === 'snatch_miss_down') {
+          handState.targetPos.set(0.38, 1.45, 1.25);
+          handState.targetRot.set(-0.32, 0.22, Math.PI - 0.35);
+          handState.targetFingerCurl = 0.22;
+          handState.targetFingerSpread = 0.16;
         }
       }
 
       function generateFloorPositions(count) {
         const positions = [];
         for (let i = 0; i < count; i++) {
-          const angle = (i / Math.max(count, 1)) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-          const radius = 0.75 + Math.random() * 1.15;
-          positions.push(new THREE.Vector3(Math.cos(angle) * radius - 0.15, 0.28, Math.sin(angle) * radius - 0.25));
+          const angle = (i / Math.max(count, 1)) * Math.PI * 2 + (Math.random() - 0.5) * 0.55;
+          const radius = 0.52 + Math.random() * 0.78;
+          positions.push(new THREE.Vector3(Math.cos(angle) * radius - 0.12, STONE_FLOOR_Y, Math.sin(angle) * radius - 0.22));
         }
         return positions;
+      }
+
+      function getCentroidOfStones(stoneList) {
+        const center = new THREE.Vector3(0, STONE_FLOOR_Y, -0.15);
+        if (!stoneList || stoneList.length === 0) return center;
+        center.set(0, 0, 0);
+        stoneList.forEach((st) => center.add(st.pos));
+        center.divideScalar(stoneList.length);
+        return center;
       }
 
       function launchStoneArc(stone, endPos, height, duration, onComplete) {
@@ -1463,23 +1937,23 @@
 
       const net = {
         peer: null,
-        conn: null,            // For guest & spectator: connection to Host
-        guestConn: null,       // For host: connection to Guest
-        spectators: [],        // For host: [{ conn, name }] (max 10)
+        conn: null,
+        guestConn: null,
+        spectators: [],
         spectatorCount: 0,
-        role: null,            // 'host' | 'guest' | 'spectator' | null
+        role: null,
         myName: '공기고수',
         roomCode: '',
-        connected: false,      // True once peer room/link is active
-        matchActive: false,    // True once guest joined and match started
-        myIdx: 0,              // 0 = Host, 1 = Guest, -1 = Spectator
+        connected: false,
+        matchActive: false,
+        myIdx: 0,
         lastGaugeSend: 0,
         myRematch: false,
         oppRematch: false
       };
 
       const chatState = {
-        messages: [],          // { roleTag, sender, text, system }
+        messages: [],
         isOpen: window.innerWidth >= 640,
         unread: 0
       };
@@ -1504,7 +1978,6 @@
         return '관전';
       }
 
-      // Host sends to Guest + all Spectators (optionally excluding one conn)
       function broadcastFromHost(payload, excludeConn = null) {
         if (net.role !== 'host') return;
         if (net.guestConn && net.guestConn.open && net.guestConn !== excludeConn) {
@@ -1517,7 +1990,6 @@
         }
       }
 
-      // Send packet from current client (Host broadcasts to all; Guest/Spectator sends to Host)
       function sendNet(payload) {
         if (game.mode !== 'online') return;
         if (net.role === 'host') {
@@ -1581,6 +2053,7 @@
       const elGameOverModal = document.getElementById('gameover-modal');
       const elRulesModal = document.getElementById('rules-modal');
       const elDisconnectModal = document.getElementById('disconnect-modal');
+      const elExitConfirmModal = document.getElementById('exit-confirm-modal');
 
       const elHud1p = document.getElementById('hud-1p');
       const elHud2p = document.getElementById('hud-2p');
@@ -1605,7 +2078,8 @@
           !elVictoryModal.classList.contains('modal-hidden') ||
           !elGameOverModal.classList.contains('modal-hidden') ||
           !elRulesModal.classList.contains('modal-hidden') ||
-          !elDisconnectModal.classList.contains('modal-hidden')
+          !elDisconnectModal.classList.contains('modal-hidden') ||
+          !elExitConfirmModal.classList.contains('modal-hidden')
         );
       }
 
@@ -1859,7 +2333,6 @@
           document.getElementById('retry-stage-btn').textContent = `재시도 (남은 기회 ${p.retriesLeft}회)`;
         }
 
-        // Hide HOLD button completely for Spectators
         elActionBtn.classList.toggle('hidden', isSpectator());
         elActionBtn.classList.remove('stage5-roll', 'holding');
         if (!isSpectator()) {
@@ -1995,7 +2468,6 @@
         hideModal(elGameOverModal);
         hideModal(elDisconnectModal);
 
-        // Immediately arrange 3D scene to reflect current stage without delay
         if (threeReady) {
           const p = curPlayer();
           if (p.stage <= 3) {
@@ -2045,7 +2517,6 @@
         );
       }
 
-      // Host accepts incoming connection (either Guest or Spectator)
       function handleHostIncomingConnection(conn) {
         conn.on('data', (data) => {
           if (!data || typeof data !== 'object') return;
@@ -2054,7 +2525,7 @@
             const joinName = (data.name || '').trim() || (data.role === 'spectator' ? '관전자' : '도전자');
             if (data.role === 'guest') {
               if (net.guestConn && net.guestConn.open) {
-                conn.send({ type: 'room_full', reason: '이미 도전자 자리가 찼습니다. 관전하기로 입장해 보세요!' });
+                try { conn.send({ type: 'room_full', reason: '이미 도전자 자리가 찼습니다. 관전하기로 입장해 보세요!' }); } catch (e) {}
                 setTimeout(() => { try { conn.close(); } catch (e) {} }, 250);
                 return;
               }
@@ -2077,16 +2548,13 @@
               hostSystemChat(`[도전자] ${joinName}님이 대결에 입장했습니다!`);
             } else if (data.role === 'spectator') {
               if (net.spectators.length >= MAX_SPECTATORS) {
-                conn.send({ type: 'room_full', reason: `관전 정원(${MAX_SPECTATORS}명)이 가득 찼습니다.` });
+                try { conn.send({ type: 'room_full', reason: `관전 정원(${MAX_SPECTATORS}명)이 가득 찼습니다.` }); } catch (e) {}
                 setTimeout(() => { try { conn.close(); } catch (e) {} }, 250);
                 return;
               }
-              const spEntry = { conn, name: joinName };
-              net.spectators.push(spEntry);
+              net.spectators.push({ conn, name: joinName });
               net.spectatorCount = net.spectators.length;
-              // Sync full state to the new spectator
-              conn.send({ type: 'spectator_sync', state: buildFullSyncState() });
-              // Notify everyone of updated spectator count
+              try { conn.send({ type: 'spectator_sync', state: buildFullSyncState() }); } catch (e) {}
               broadcastFromHost({ type: 'spectator_count', count: net.spectatorCount });
               updateHUD();
               hostSystemChat(`[관전] ${joinName}님이 관전을 시작했습니다. (👀 ${net.spectatorCount}명)`);
@@ -2094,7 +2562,6 @@
             return;
           }
 
-          // Relay & process packets from Guest or Spectator
           handleNetPacket(data, conn);
         });
 
@@ -2131,13 +2598,12 @@
         broadcastFromHost({ type: 'chat', system: true, text });
       }
 
-      // Guest or Spectator connects to Host
       function setupClientConnection(conn, role) {
         net.conn = conn;
 
         conn.on('open', () => {
           net.connected = true;
-          conn.send({ type: 'hello', role, name: net.myName });
+          try { conn.send({ type: 'hello', role, name: net.myName }); } catch (e) {}
           if (role === 'guest') {
             document.getElementById('join-status-text').textContent = '✅ 연결 완료! 대결을 시작합니다...';
           } else {
@@ -2195,7 +2661,6 @@
             break;
           }
           case 'gauge': {
-            // If host receives gauge from guest, relay to all spectators
             if (net.role === 'host' && senderConn === net.guestConn) {
               broadcastFromHost(data, senderConn);
             }
@@ -2224,7 +2689,6 @@
             break;
           }
           case 'emoji': {
-            // Host relays emoji from any client to all other participants
             if (net.role === 'host' && senderConn) {
               broadcastFromHost(data, senderConn);
             }
@@ -2232,7 +2696,6 @@
             break;
           }
           case 'chat': {
-            // Host relays chat from any client to all other participants
             if (net.role === 'host' && senderConn) {
               broadcastFromHost(data, senderConn);
             }
@@ -2533,15 +2996,15 @@
           stones.forEach((st) => {
             st.pos.copy(st.mesh.position);
             const isLanded = game.stage5LandedIds.includes(st.id);
-            const targetWorld = new THREE.Vector3(0, 1.65, 1.15);
+            const targetWorld = new THREE.Vector3(0, 1.55, 1.15);
             if (isLanded) {
               const slot = game.stage5LandedIds.indexOf(st.id);
               const off = BACK_OFFSETS[slot];
-              targetWorld.set(-off.x, 1.35 - off.y, 1.15 + off.z);
+              targetWorld.set(-off.x, 1.28 - off.y, 1.15 + off.z);
             } else {
               targetWorld.set((Math.random() - 0.5) * 1.4, 1.5, 0.8 + (Math.random() - 0.5) * 0.8);
             }
-            launchStoneArc(st, targetWorld, 2.0, 0.62, () => {
+            launchStoneArc(st, targetWorld, 2.0, 0.65, () => {
               if (isLanded) {
                 const slot = game.stage5LandedIds.indexOf(st.id);
                 st.state = 'hand_back';
@@ -2552,7 +3015,7 @@
               }
             });
           });
-          setTimeout(() => setHandPose('back_of_hand'), 200);
+          setTimeout(() => setHandPose('back_of_hand'), 210);
         }
 
         setTimeout(() => {
@@ -2572,7 +3035,7 @@
             renderGaugeUI();
             updateHUD();
           }
-        }, 780);
+        }, 800);
       }
 
       function evaluateGaugeRelease(remoteVal = null) {
@@ -2599,6 +3062,7 @@
         }
       }
 
+      // Stages 1~3: Toss 1 stone -> swoop directly down to target floor stones -> scoop -> catch
       function animateStandardTurn(isSuccess, releasedVal, zone) {
         const p = curPlayer();
         const step = STAGE_CONFIG[p.stage].steps[game.stepIndex];
@@ -2607,23 +3071,32 @@
         if (threeReady) {
           const tossStone = stones[0];
           const toPick = stones.filter((s) => s.state === 'floor').slice(0, step.pick);
+          const grabCenter = getCentroidOfStones(toPick);
+
           setCameraFocus('toss');
           setHandPose('toss_up');
           tossStone.pos.copy(tossStone.mesh.position);
-          const catchPos = new THREE.Vector3(0.1, 1.72, 1.4);
-          launchStoneArc(tossStone, catchPos, 3.2, 0.72, () => {
+          const catchPos = new THREE.Vector3(0.1, 1.72, 1.38);
+
+          launchStoneArc(tossStone, catchPos, 3.35, 0.88, () => {
             if (isSuccess) {
               tossStone.state = 'hand_palm';
               tossStone.handOffset.copy(PALM_OFFSETS[0]);
+              setHandPose('catch_close');
               sound.playCatch(game.stepIndex);
-              spawnParticles(catchPos, 16, false);
+              spawnParticles(catchPos, 18, false);
             } else {
-              dropStoneBounce(tossStone, 0.4, -1.5);
+              dropStoneBounce(tossStone, 0.55, -1.6);
               sound.playFail();
             }
           });
+
           setTimeout(() => {
-            setHandPose('sweep_floor');
+            setHandPose('swoop_open', grabCenter);
+          }, 160);
+
+          setTimeout(() => {
+            setHandPose('grab_floor', grabCenter);
             if (isSuccess) {
               toPick.forEach((st, idx) => {
                 const inHand = stones.filter((s) => s.state === 'hand_palm').length;
@@ -2631,9 +3104,14 @@
                 st.handOffset.copy(PALM_OFFSETS[(inHand + idx) % PALM_OFFSETS.length]);
                 sound.playClack(0.24, 1.05 + idx * 0.08);
               });
+            } else if (toPick.length > 0) {
+              toPick.forEach((st) => dropStoneBounce(st, (Math.random() - 0.5) * 0.9, -0.5));
             }
-          }, 220);
-          setTimeout(() => setHandPose('catch_palm'), 480);
+          }, 340);
+
+          setTimeout(() => {
+            setHandPose(isSuccess ? 'catch_palm' : 'miss_catch');
+          }, 560);
         } else {
           isSuccess ? sound.playCatch(game.stepIndex) : sound.playFail();
         }
@@ -2651,87 +3129,145 @@
               `수치 ${Math.round(releasedVal)} (목표 ${zone.min}~${zone.max})`
             );
           }
-        }, 840);
+        }, 980);
       }
 
+      // Stage 4: Place 4 stones down, then sweep all 4 up
       function animateStage4Turn(isSuccess, releasedVal, zone) {
         const step = STAGE_CONFIG[4].steps[game.stepIndex];
         sound.playWhoosh();
 
         if (threeReady) {
           const tossStone = stones[0];
-          const others = stones.slice(1);
+          const fourStones = stones.slice(1);
+          const catchPos = new THREE.Vector3(0.1, 1.72, 1.38);
+
           setCameraFocus('toss');
           setHandPose('toss_up');
           tossStone.pos.copy(tossStone.mesh.position);
-          const catchPos = new THREE.Vector3(0.1, 1.72, 1.4);
-          launchStoneArc(tossStone, catchPos, 3.3, 0.74, () => {
+
+          launchStoneArc(tossStone, catchPos, 3.4, 0.90, () => {
             if (isSuccess) {
               tossStone.state = 'hand_palm';
               tossStone.handOffset.copy(PALM_OFFSETS[0]);
-              sound.playCatch(game.stepIndex + 1);
-              spawnParticles(catchPos, 18, false);
+              setHandPose('catch_close');
+              sound.playCatch(game.stepIndex);
+              spawnParticles(catchPos, 20, false);
             } else {
-              dropStoneBounce(tossStone, -0.5, -1.5);
+              dropStoneBounce(tossStone, 0.55, -1.6);
               sound.playFail();
             }
           });
+
+          if (step.type === 'place4') {
+            const dropTargets = generateFloorPositions(4);
+            const dropCenter = dropTargets.reduce((acc, v) => acc.add(v), new THREE.Vector3()).divideScalar(4);
+
+            setTimeout(() => {
+              setHandPose('place_floor', dropCenter);
+            }, 170);
+
+            setTimeout(() => {
+              fourStones.forEach((st, idx) => {
+                if (isSuccess) {
+                  st.state = 'floor';
+                  st.pos.copy(dropTargets[idx]);
+                  st.mesh.position.copy(st.pos);
+                  sound.playClack(0.2, 0.95 + idx * 0.06);
+                } else {
+                  dropStoneBounce(st, (Math.random() - 0.5) * 1.8, -0.8);
+                }
+              });
+            }, 350);
+          } else {
+            const grabCenter = getCentroidOfStones(fourStones);
+
+            setTimeout(() => {
+              setHandPose('swoop_open', grabCenter);
+            }, 160);
+
+            setTimeout(() => {
+              setHandPose('grab_floor', grabCenter);
+              if (isSuccess) {
+                fourStones.forEach((st, idx) => {
+                  st.state = 'hand_palm';
+                  st.handOffset.copy(PALM_OFFSETS[(idx + 1) % PALM_OFFSETS.length]);
+                  sound.playClack(0.24, 1.05 + idx * 0.06);
+                });
+              } else {
+                fourStones.forEach((st) => dropStoneBounce(st, (Math.random() - 0.5) * 1.1, -0.5));
+              }
+            }, 350);
+          }
+
           setTimeout(() => {
-            setHandPose('sweep_floor');
-            if (step.type === 'place4') {
-              const pts = generateFloorPositions(4);
-              others.forEach((st, idx) => {
-                st.state = 'floor';
-                st.pos.copy(pts[idx]);
-                st.mesh.position.copy(st.pos);
-                sound.playClack(0.2, 0.92 + idx * 0.05);
-              });
-            } else if (step.type === 'sweep4' && isSuccess) {
-              others.forEach((st, idx) => {
-                st.state = 'hand_palm';
-                st.handOffset.copy(PALM_OFFSETS[idx + 1]);
-                sound.playClack(0.25, 1.1 + idx * 0.05);
-              });
-            }
-          }, 230);
-          setTimeout(() => setHandPose('catch_palm'), 500);
+            setHandPose(isSuccess ? 'catch_palm' : 'miss_catch');
+          }, 580);
         } else {
-          isSuccess ? sound.playCatch(2) : sound.playFail();
+          isSuccess ? sound.playCatch(game.stepIndex) : sound.playFail();
         }
 
         setTimeout(() => {
           setCameraFocus('overview');
           if (isSuccess) {
             setHandPose('ready_palm');
-            showToast(`성공! (${Math.round(releasedVal)})`, step.type === 'place4' ? '4개 내려놓기 성공!' : '4개 쓸어 담기 성공!', 'success', 1150);
+            showToast(
+              `성공! (${Math.round(releasedVal)})`,
+              step.type === 'place4' ? '4개 바닥에 놓기 완료' : '4개 쓸어 담기 완료!',
+              'success',
+              1150
+            );
             advanceStepOrStage();
           } else {
             handleFailure(
               `놓은 수치: ${Math.round(releasedVal)} (목표: ${zone.min} ~ ${zone.max})`,
-              '4단 실패!',
+              '놓쳤습니다!',
               `수치 ${Math.round(releasedVal)} (목표 ${zone.min}~${zone.max})`
             );
           }
-        }, 860);
+        }, 990);
       }
 
+      // Stage 5: Toss upward from back of hand -> rise ABOVE stones palm-down -> swoop DOWNWARD & twist wrist inward
       function animateStage5Snatch(isSuccess, releasedVal, zone) {
         sound.playWhoosh();
         if (threeReady) {
           setCameraFocus('stage5');
+          setHandPose('snatch_flick');
+
           const landed = stones.filter((s) => game.stage5LandedIds.includes(s.id));
           landed.forEach((st, idx) => {
             st.pos.copy(st.mesh.position);
-            launchStoneArc(st, new THREE.Vector3((idx - 1.5) * 0.16, 1.9, 1.05), 1.75, 0.58, () => {
+            const midAirCatch = new THREE.Vector3((idx - (landed.length - 1) / 2) * 0.16, 1.56, 1.06);
+            launchStoneArc(st, midAirCatch, 2.05, 0.62, () => {
               if (isSuccess) {
                 st.state = 'hand_palm';
                 st.handOffset.copy(PALM_OFFSETS[idx % PALM_OFFSETS.length]);
+                sound.playClack(0.24, 1.12 + idx * 0.05);
               } else {
                 dropStoneBounce(st, (Math.random() - 0.5) * 2.8, -1.5);
               }
             });
           });
-          setTimeout(() => setHandPose('snatch'), 250);
+
+          setTimeout(() => {
+            setHandPose('snatch_hover_top');
+          }, 135);
+
+          setTimeout(() => {
+            if (isSuccess) {
+              setHandPose('snatch_strike_down');
+              sound.playWhoosh();
+            } else {
+              setHandPose('snatch_miss_down');
+            }
+          }, 395);
+
+          if (isSuccess) {
+            setTimeout(() => {
+              setHandPose('snatch_twist_in');
+            }, 640);
+          }
         }
 
         setTimeout(() => {
@@ -2740,7 +3276,7 @@
             const pts = game.stage5LandedCount;
             p.score += pts;
             sound.playVictory();
-            if (threeReady) spawnParticles(new THREE.Vector3(0, 2.0, 1.0), 42, true);
+            if (threeReady) spawnParticles(new THREE.Vector3(0, 1.85, 1.05), 42, true);
             updateHUD();
 
             if (p.score >= game.targetScore) {
@@ -2819,7 +3355,7 @@
               `수치 ${Math.round(releasedVal)} (목표 ${zone.min}~${zone.max})`
             );
           }
-        }, 720);
+        }, 880);
       }
 
       function advanceStepOrStage() {
@@ -2843,10 +3379,48 @@
       }
 
       /* --------------------------------------------------------------------------
-       * 7. UNIFIED INPUT, CHAT, EMOJI & UI EVENT LISTENERS
+       * 7. BACK-BUTTON & TAB-CLOSE GUARD (Custom Modal + Defensive try/catch)
+       * -------------------------------------------------------------------------- */
+      function initExitGuard() {
+        let isLeaving = false;
+        try {
+          if (window.history && typeof window.history.pushState === 'function') {
+            window.history.pushState({ gameGuard: true }, '', window.location.href);
+          }
+        } catch (e) {}
+
+        window.addEventListener('popstate', () => {
+          if (isLeaving) return;
+          showModal(elExitConfirmModal);
+        });
+
+        document.getElementById('exit-cancel-btn').addEventListener('click', () => {
+          hideModal(elExitConfirmModal);
+          try {
+            if (window.history && typeof window.history.pushState === 'function') {
+              window.history.pushState({ gameGuard: true }, '', window.location.href);
+            }
+          } catch (e) {}
+        });
+
+        document.getElementById('exit-leave-btn').addEventListener('click', () => {
+          isLeaving = true;
+          hideModal(elExitConfirmModal);
+          cleanupNetwork();
+          try { window.history.back(); } catch (e) {}
+        });
+
+        window.addEventListener('beforeunload', (e) => {
+          if (isLeaving) return;
+          e.preventDefault();
+          e.returnValue = '';
+        });
+      }
+
+      /* --------------------------------------------------------------------------
+       * 8. UNIFIED POINTER INPUT, CHAT, EMOJI & UI EVENT LISTENERS
        * -------------------------------------------------------------------------- */
       function bindUIEvents() {
-        // Unified Pointer Events on Action Button
         elActionBtn.addEventListener('pointerdown', (e) => {
           e.preventDefault();
           if (isAnyModalOpen() || !isMyTurn()) return;
@@ -2869,7 +3443,6 @@
         window.addEventListener('pointerup', releaseHold);
         window.addEventListener('pointercancel', releaseHold);
 
-        // Keyboard Space Support (Blocked when typing in INPUT/TEXTAREA)
         window.addEventListener('keydown', (e) => {
           if (e.code === 'Space' && !e.repeat) {
             if (isAnyModalOpen() || !isMyTurn()) return;
@@ -2894,7 +3467,6 @@
           }
         });
 
-        // Mode Selection (1P vs Local 2P vs Online)
         const mode1pBtn = document.getElementById('mode-1p-btn');
         const mode2pBtn = document.getElementById('mode-2p-btn');
         const modeOnlineBtn = document.getElementById('mode-online-btn');
@@ -2960,7 +3532,6 @@
         mode2pBtn.addEventListener('click', () => setModeUI('2p'));
         modeOnlineBtn.addEventListener('click', () => setModeUI('online'));
 
-        // Modal Speed Buttons
         document.querySelectorAll('.modal-speed-btn').forEach((btn) => {
           btn.addEventListener('click', () => {
             game.speedIdx = parseInt(btn.dataset.speedOpt, 10);
@@ -2968,7 +3539,6 @@
           });
         });
 
-        // Online Room Controls (Host / Guest / Spectator)
         document.getElementById('create-room-btn').addEventListener('click', () => {
           sound.ensureContext();
           createOnlineRoom();
@@ -3008,7 +3578,6 @@
           connectToOnlineRoom('spectator');
         });
 
-        // Real-time Chat Controls
         const chatInput = document.getElementById('chat-input');
         function submitChat() {
           if (game.mode !== 'online' || !net.connected) return;
@@ -3042,7 +3611,6 @@
           renderChatMessages();
         });
 
-        // Emoji Reaction Buttons (👏 🔥 😂 😱 🎉)
         document.querySelectorAll('.emoji-btn').forEach((btn) => {
           btn.addEventListener('click', () => {
             if (game.mode !== 'online' || !net.connected) return;
@@ -3053,7 +3621,6 @@
           });
         });
 
-        // Target Score Presets
         const presetBtns = document.querySelectorAll('.preset-btn');
         const customInput = document.getElementById('custom-target-input');
         function highlightPreset(val) {
@@ -3072,7 +3639,6 @@
         });
         customInput.addEventListener('input', () => highlightPreset(customInput.value));
 
-        // Start / Resume / New Game Buttons
         startGameBtn.addEventListener('click', () => {
           sound.ensureContext();
           startNewGame();
@@ -3089,7 +3655,6 @@
           showModal(elStartModal);
         });
 
-        // Rules Modal Buttons
         document.getElementById('rules-btn').addEventListener('click', () => showModal(elRulesModal));
         document.getElementById('modal-rules-btn').addEventListener('click', () => showModal(elRulesModal));
         document.getElementById('close-rules-btn').addEventListener('click', () => hideModal(elRulesModal));
@@ -3097,7 +3662,6 @@
           if (e.target === elRulesModal) hideModal(elRulesModal);
         });
 
-        // Disconnect Return to Menu Button
         document.getElementById('disconnect-menu-btn').addEventListener('click', () => {
           cleanupNetwork();
           resetChat();
@@ -3110,7 +3674,6 @@
           updateHUD();
         });
 
-        // Local 2P Next Turn Button
         document.getElementById('start-next-turn-btn').addEventListener('click', () => {
           sound.ensureContext();
           hideModal(elTurnModal);
@@ -3119,7 +3682,6 @@
           showToast(`${p.name}님 차례!`, `${p.round}회차 · ${STAGE_CONFIG[p.stage].name}`, 'info', 1300);
         });
 
-        // 1P Retry Stage Button
         document.getElementById('retry-stage-btn').addEventListener('click', () => {
           const p = curPlayer();
           if (game.phase !== 'retry_wait' || p.retriesLeft <= 0) return;
@@ -3129,7 +3691,6 @@
           setupStage(p.stage);
         });
 
-        // Victory & Game Over Restart Buttons
         document.getElementById('victory-restart-btn').addEventListener('click', () => {
           if (game.mode === 'online' && net.connected && !isSpectator()) {
             net.myRematch = true;
@@ -3153,7 +3714,6 @@
           showModal(elStartModal);
         });
 
-        // Top-right Speed & Sound Toggles
         document.getElementById('speed-btn').addEventListener('click', () => {
           if (game.mode === 'online' && net.role !== 'host') {
             showToast('속도 변경 권한', '온라인 방에서는 방장만 속도를 변경할 수 있습니다.', 'info', 1400);
@@ -3170,7 +3730,6 @@
           document.getElementById('sound-off-icon').classList.toggle('hidden', sound.enabled);
         });
 
-        // Auto-detect ?room=XXXX and optional &spectate=1 URL parameters
         try {
           const params = new URLSearchParams(window.location.search);
           const urlRoom = params.get('room');
@@ -3191,7 +3750,7 @@
       }
 
       /* --------------------------------------------------------------------------
-       * 8. MAIN 60FPS ANIMATION LOOP
+       * 9. MAIN 60FPS ANIMATION LOOP
        * -------------------------------------------------------------------------- */
       let lastTime = 0;
       function animate(time) {
@@ -3199,7 +3758,6 @@
         const dt = Math.min((time - lastTime) / 1000 || 0.016, 0.05);
         lastTime = time;
 
-        // Oscillating Gauge Update (Active Player)
         if (game.isHolding && game.phase === 'charging' && isMyTurn()) {
           const speed = SPEED_PRESETS[game.speedIdx].rate;
           game.gaugeVal += game.gaugeDir * speed * dt;
@@ -3220,7 +3778,7 @@
 
         if (!threeReady) return;
 
-        // Camera Smooth Orbit
+        // Smooth Camera Orbit
         const lerpAmt = 1 - Math.exp(-5.5 * dt);
         camState.pos.lerp(camState.targetPos, lerpAmt);
         camState.lookAt.lerp(camState.targetLookAt, lerpAmt);
@@ -3232,13 +3790,14 @@
         camera.position.copy(camState.lookAt).add(new THREE.Vector3().setFromSpherical(spherical));
         camera.lookAt(camState.lookAt);
 
-        // Hand Pose Interpolation
-        const handLerp = 1 - Math.exp(-9.5 * dt);
+        // Smooth Hand Pose & 3-Segment Multi-Joint Finger Articulation
+        const handLerp = 1 - Math.exp(-13.5 * dt);
         handState.pos.lerp(handState.targetPos, handLerp);
         handState.rot.x += (handState.targetRot.x - handState.rot.x) * handLerp;
         handState.rot.y += (handState.targetRot.y - handState.rot.y) * handLerp;
         handState.rot.z += (handState.targetRot.z - handState.rot.z) * handLerp;
         handState.fingerCurl += (handState.targetFingerCurl - handState.fingerCurl) * handLerp;
+        handState.fingerSpread += (handState.targetFingerSpread - handState.fingerSpread) * handLerp;
 
         handGroup.position.copy(handState.pos);
         if (handState.tremble > 0) {
@@ -3247,20 +3806,26 @@
         }
         handGroup.rotation.copy(handState.rot);
 
-        if (handMeshParts.fingerPivots) {
-          handMeshParts.fingerPivots.forEach((p, idx) => {
-            p.rotation.x = handState.fingerCurl * (0.85 + idx * 0.04);
+        if (handMeshParts.fingerJoints) {
+          handMeshParts.fingerJoints.forEach((fj, idx) => {
+            const curlScale = 0.88 + idx * 0.045;
+            fj.knucklePivot.rotation.x = handState.fingerCurl * 0.78 * curlScale;
+            fj.knucklePivot.rotation.y = handState.fingerSpread * fj.spreadSign;
+            fj.midPivot.rotation.x = handState.fingerCurl * 0.92 * curlScale;
+            fj.distPivot.rotation.x = handState.fingerCurl * 0.68 * curlScale;
           });
-          handMeshParts.thumbPivot.rotation.x = handState.fingerCurl * 0.55;
+          handMeshParts.thumbBasePivot.rotation.x = 0.06 + handState.fingerCurl * 0.34;
+          handMeshParts.thumbMidPivot.rotation.x = handState.fingerCurl * 0.48;
+          handMeshParts.thumbDistPivot.rotation.x = handState.fingerCurl * 0.42;
         }
         handGroup.updateMatrixWorld();
 
-        // Stones Physics / Arcs
+        // Stones Physics & Arcs
         const tempVec = new THREE.Vector3();
         for (const st of stones) {
           if (st.state === 'hand_palm' || st.state === 'hand_back') {
             tempVec.copy(st.handOffset).applyMatrix4(handGroup.matrixWorld);
-            st.pos.lerp(tempVec, 1 - Math.exp(-18 * dt));
+            st.pos.lerp(tempVec, 1 - Math.exp(-20 * dt));
             st.mesh.position.copy(st.pos);
             st.mesh.rotation.x *= 0.9;
             st.mesh.rotation.z *= 0.9;
@@ -3284,8 +3849,8 @@
             st.mesh.rotation.x += st.rotVel.x * dt;
             st.mesh.rotation.y += st.rotVel.y * dt;
             st.mesh.rotation.z += st.rotVel.z * dt;
-            if (st.pos.y <= 0.28) {
-              st.pos.y = 0.28;
+            if (st.pos.y <= STONE_FLOOR_Y) {
+              st.pos.y = STONE_FLOOR_Y;
               if (Math.abs(st.vel.y) > 0.75) {
                 st.vel.y = -st.vel.y * 0.42;
                 st.vel.x *= 0.72;
@@ -3300,6 +3865,18 @@
             st.mesh.position.copy(st.pos);
           } else {
             st.mesh.position.copy(st.pos);
+          }
+
+          if (st.shadow) {
+            const heightAboveFloor = Math.max(0, st.pos.y - STONE_FLOOR_Y);
+            const fade = Math.max(0, 1 - heightAboveFloor * 0.42);
+            st.shadow.visible = fade > 0.02;
+            if (st.shadow.visible) {
+              st.shadow.position.set(st.pos.x, 0.064, st.pos.z);
+              const s = 1 + heightAboveFloor * 0.35;
+              st.shadow.scale.set(s, 1, s);
+              st.shadow.material.opacity = 0.32 * fade;
+            }
           }
         }
 
@@ -3325,11 +3902,12 @@
       }
 
       /* --------------------------------------------------------------------------
-       * 9. BOOTSTRAP ON LOAD
+       * 10. BOOTSTRAP ON LOAD
        * -------------------------------------------------------------------------- */
       window.addEventListener('load', () => {
         initThreeScene();
         bindUIEvents();
+        initExitGuard();
         syncSpeedButtonsUI();
         renderGaugeUI();
         updateHUD();
@@ -3337,5 +3915,32 @@
       });
     })();
   </script>
+  <!-- 뒤로가기 / 나가기 방지 확인 창 -->
+<script>
+  (function () {
+    let isLeaving = false;
+
+    // 현재 페이지 기록을 한 번 쌓아 뒤로가기를 가로챔
+    history.pushState({ gameGuard: true }, '', location.href);
+
+    window.addEventListener('popstate', function () {
+      if (isLeaving) return;
+      if (confirm('정말로 나가시겠습니까?\n진행 중인 게임 내용이 사라질 수 있습니다.')) {
+        isLeaving = true;
+        history.back();
+      } else {
+        // 취소를 누르면 다시 뒤로가기 방지 상태 유지
+        history.pushState({ gameGuard: true }, '', location.href);
+      }
+    });
+
+    // PC 브라우저 탭 닫기 / 새로고침 시 확인
+    window.addEventListener('beforeunload', function (e) {
+      if (isLeaving) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  })();
+</script>
 </body>
 </html>
