@@ -2991,5 +2991,30 @@
       });
     })();
   </script>
+  <!-- 뒤로가기 / 나가기 방지 확인 창 -->
+<script>
+  (function () {
+    let isLeaving = false;
+
+    history.pushState({ gameGuard: true }, '', location.href);
+
+    window.addEventListener('popstate', function () {
+      if (isLeaving) return;
+      if (confirm('정말로 나가시겠습니까?\n진행 중인 게임 내용이 사라질 수 있습니다.')) {
+        isLeaving = true;
+        history.back();
+      } else {
+        history.pushState({ gameGuard: true }, '', location.href);
+      }
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+      if (isLeaving) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  })();
+</script>
+  
 </body>
 </html>
